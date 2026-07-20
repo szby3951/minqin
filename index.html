@@ -1,0 +1,3908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>民勤治沙 &middot; 数据新闻可视化</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════ RESET & BASE ═══════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,Arial,sans-serif;
+  background:#faf8f0;
+  color:#282828;
+  line-height:1.7;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* Layer 2 — sand grain texture overlay */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity:.035;mix-blend-mode:multiply;
+}
+/* Layer 1 — atmospheric zone tints */
+.atmos-sand{background:#f7f1e3}
+.atmos-sage{background:#f1f5ec}
+.atmos-warm{background:#faf6e8}
+.atmos-sand,.atmos-sage,.atmos-warm{position:relative}
+/* Layer 4 — haze glow blobs */
+.haze{
+  position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;
+}
+.haze::before,.haze::after{
+  content:"";position:absolute;border-radius:50%;
+  filter:blur(60px);opacity:.14;
+}
+.haze::before{width:520px;height:520px;background:#d4a853;top:-120px;right:-100px}
+.haze::after{width:400px;height:400px;background:#388453;bottom:-100px;left:-80px}
+.haze-green::before{background:#388453}.haze-green::after{background:#6fce88}
+.haze-gold::before{background:#e0b030}.haze-gold::after{background:#cf9000}
+.haze-warm::before{background:#d4a853}.haze-warm::after{background:#e0b030}
+/* Layer 3 — organic wind-eroded transition edges */
+.edge-clip{
+  position:absolute;left:0;right:0;bottom:-1px;height:64px;
+  pointer-events:none;z-index:2;overflow:hidden;
+}
+.edge-clip.edge-top{bottom:auto;top:-64px}
+.edge-clip svg{display:block;width:100%;height:100%}
+/* ensure sections with atmos classes establish stacking */
+.atmos-sand > *,.atmos-sage > *,.atmos-warm > *{position:relative;z-index:1}
+.edge-clip .eg-fill{transition:none}
+/* edge color variants */
+.edge-green .eg-fill{fill:url(#egGreen)}
+.edge-gold .eg-fill{fill:url(#egGold)}
+.edge-sage .eg-fill{fill:url(#egSage)}
+.edge-dark .eg-fill{fill:url(#egDark)}
+:root{
+  /* Greens */
+  --green-primary:#388453;
+  --green-deep:#006f27;
+  --green-dark:#00461a;
+  --green-bright:#2f9543;
+  --green-mid:#177333;
+  --green-light:#08741d;
+  --green-pale:#e1f4ec;
+  --green-sage:#c9e4cf;
+  --green-overlay-33:rgba(56,132,83,0.33);
+  --green-overlay-63:rgba(56,132,83,0.63);
+  /* Neutrals */
+  --white:#ffffff;
+  --text:#282828;
+  --text-sec:#444444;
+  --text-muted:#808080;
+  --border:rgba(0,0,0,0.08);
+  --border-lg:rgba(0,0,0,0.12);
+  --bg-light:#f5f5f5;
+  --bg-warm:#faf8f0;
+  /* Accents */
+  --gold:#cf9000;
+  --yellow:#faf75e;
+  --yellow-pale:#fbf2bf;
+  /* Typography */
+  --serif:"Noto Serif SC",Georgia,serif;
+  --sans:"Inter",-apple-system,sans-serif;
+  /* Spacing */
+  --section-pad:clamp(48px,8vw,96px);
+  --card-pad:clamp(18px,2.5vw,28px);
+  --radius-sm:4px;
+  --radius-md:12px;
+  --radius-lg:28px;
+  --radius-xl:40px;
+}
+
+/* ═══════ TYPOGRAPHY ═══════ */
+h1{font-family:var(--serif);font-size:clamp(2.4rem,7vw,5rem);font-weight:900;line-height:1.05;letter-spacing:-0.02em;color:var(--text)}
+h2{font-family:var(--serif);font-size:clamp(2rem,4.5vw,3.2rem);font-weight:700;line-height:1.1;letter-spacing:-0.01em;color:var(--text)}
+h3{font-family:var(--serif);font-size:clamp(1.05rem,1.8vw,1.3rem);font-weight:700;line-height:1.3;color:var(--text);}
+p{font-size:clamp(.85rem,1.05vw,.95rem);color:var(--text-sec);line-height:1.75;margin-bottom:14px}
+p:last-child{margin-bottom:0}
+.gold{color:var(--gold)}
+.green{color:var(--green-primary)}
+.font-serif{font-family:var(--serif)}
+.muted{color:var(--text-muted)}
+.italic{font-style:italic}
+
+/* ── richer text blocks ── */
+.lede{
+  font-size:clamp(1rem,1.6vw,1.25rem);
+  color:var(--text);
+  font-weight:500;
+  line-height:1.6;
+  margin-bottom:20px;
+}
+.body-text{
+  max-width:680px;
+  margin:0 auto clamp(24px,4vw,40px);
+}
+.body-text p{
+  font-size:clamp(.88rem,1.1vw,1rem);
+  line-height:1.85;
+  margin-bottom:18px;
+  color:var(--text-sec);
+}
+.body-text p:first-of-type{
+  font-size:clamp(1rem,1.4vw,1.15rem);
+  color:var(--text);
+  font-weight:400;
+  line-height:1.75;
+}
+.pull-quote{
+  font-family:var(--serif);
+  font-size:clamp(1.1rem,2vw,1.5rem);
+  font-weight:700;
+  color:var(--green-primary);
+  line-height:1.4;
+  padding:clamp(16px,2.5vw,28px) clamp(20px,3vw,36px);
+  margin:clamp(24px,4vw,40px) 0;
+  border-left:3px solid var(--green-primary);
+  background:var(--green-pale);
+  border-radius:0 var(--radius-md) var(--radius-md) 0;
+}
+.pull-quote.gold{border-left-color:var(--gold);background:var(--yellow-pale);color:var(--gold)}
+.caption{
+  font-size:.78rem;
+  color:var(--text-muted);
+  line-height:1.6;
+  font-style:italic;
+  margin-top:12px;
+  text-align:center;
+}
+.highlight-box{
+  background:var(--green-pale);
+  border-radius:var(--radius-md);
+  padding:clamp(20px,3vw,32px);
+  margin:clamp(20px,3vw,36px) 0;
+}
+.highlight-box.gold{background:var(--yellow-pale)}
+.highlight-box p{font-size:.9rem;line-height:1.75;margin-bottom:12px}
+
+/* ═══════ LAYOUT ═══════ */
+.wrap{width:100%;max-width:1280px;margin:0 auto;padding:0 clamp(16px,3.5vw,56px)}
+.narrow{max-width:620px;margin:0 auto}
+.section{padding:var(--section-pad) 0;position:relative}
+.section-tight{padding:clamp(40px,6vw,80px) 0}
+.section-label{
+  display:inline-block;
+  font-size:12px;
+  letter-spacing:.35em;
+  text-transform:uppercase;
+  color:var(--green-primary);
+  font-weight:500;
+  margin-bottom:20px;
+  padding-left:36px;
+  position:relative;
+}
+.section-label::before{
+  content:"";
+  position:absolute;
+  left:0;top:50%;
+  width:24px;height:1px;
+  background:var(--green-primary);
+}
+
+/* ═══════ REVEAL ANIMATIONS ═══════ */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity 1s cubic-bezier(.16,1,.3,1),transform 1s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.reveal-l{opacity:0;transform:translateX(-30px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+.reveal-l.in{opacity:1;transform:none}
+.reveal-r{opacity:0;transform:translateX(30px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+.reveal-r.in{opacity:1;transform:none}
+.reveal-scale{opacity:0;transform:scale(.95);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+.reveal-scale.in{opacity:1;transform:none}
+.reveal.d1{transition-delay:.15s}.reveal.d2{transition-delay:.3s}.reveal.d3{transition-delay:.45s}
+.reveal.d4{transition-delay:.6s}.reveal.d5{transition-delay:.75s}
+.reveal.d6{transition-delay:.9s}
+
+/* ═══════ NAVIGATION ═══════ */
+.nav{
+  position:fixed;top:0;left:0;right:0;
+  z-index:1000;
+  padding:0 clamp(20px,4vw,60px);
+  height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.8);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid transparent;
+  transition:border-color .4s,background .4s;
+}
+.nav.scrolled{border-bottom:1px solid var(--border);background:rgba(255,255,255,0.92)}
+.nav-logo{font-family:var(--serif);font-weight:700;font-size:clamp(.85rem,1.2vw,1rem);color:var(--green-primary);letter-spacing:.02em}
+.nav-links{display:flex;gap:clamp(10px,2vw,24px);align-items:center}
+.nav-link{
+  font-size:clamp(.65rem,.95vw,.76rem);
+  color:var(--text-sec);
+  text-decoration:none;
+  letter-spacing:.04em;
+  padding:4px 0;
+  position:relative;
+  transition:color .3s;
+}
+.nav-link:hover,.nav-link.active{color:var(--green-primary)}
+.nav-link.active::after{
+  content:"";position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--green-primary);
+}
+.nav-back{
+  font-size:clamp(.62rem,.9vw,.7rem);
+  color:var(--text-sec);
+  text-decoration:none;
+  padding:7px 16px;
+  border:1px solid var(--border-lg);
+  border-radius:8px;
+  transition:border-color .3s,color .3s;
+}
+.nav-back:hover{border-color:var(--green-primary);color:var(--green-primary)}
+.nav-toggle{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.nav-toggle span{display:block;width:22px;height:1.5px;background:var(--text);transition:.3s}
+.mobile-menu{
+  position:fixed;top:60px;left:0;right:0;z-index:999;
+  background:rgba(255,255,255,0.97);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:24px clamp(20px,4vw,60px);
+  display:none;flex-direction:column;gap:18px;
+  border-bottom:1px solid var(--border);
+}
+.mobile-menu.open{display:flex}
+.mobile-menu a{color:var(--text-sec);text-decoration:none;font-size:.9rem;padding:8px 0;border-bottom:1px solid var(--border)}
+.mobile-menu a:hover{color:var(--green-primary)}
+@media(max-width:720px){.nav-links{display:none}.nav-toggle{display:flex}}
+
+/* ═══════ SCROLL PROGRESS ═══════ */
+.scroll-progress{
+  position:fixed;top:0;left:0;height:2px;
+  background:linear-gradient(90deg,var(--green-primary),var(--gold));
+  z-index:1001;width:0;transition:width .1s linear;
+}
+
+/* ═══════ HERO ═══════ */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(80px,12vw,150px) clamp(20px,4vw,60px);
+  position:relative;overflow:hidden;
+}
+.hero-inner{position:relative;z-index:2;max-width:1280px;margin:0 auto;width:100%}
+.hero-top{
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  gap:clamp(24px,4vw,56px);
+  align-items:center;
+  margin-bottom:28px;
+}
+/* hero image = contained card, NOT full-bleed */
+.ph-wide{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 8px 40px rgba(0,0,0,0.12);
+  display:flex;flex-direction:column;
+}
+.ph-wide .ph-img{height:300px;position:relative;overflow:hidden;width:100%;flex-shrink:0}
+.ph-wide .ph-img img{width:100%;height:100%;object-fit:cover;display:block}
+.ph-wide .ph-caption{
+  padding:12px 18px;
+  font-size:.82rem;
+  line-height:1.55;
+  color:var(--text-sec);
+  border-top:1px solid var(--border);
+}
+.ph-wide .ph-caption strong{color:var(--green-dark)}
+.ph-icon{font-size:2rem;margin-bottom:12px;opacity:.4}
+.hero-text{color:var(--text)}
+.hero-title{font-family:var(--serif);font-size:clamp(2.6rem,7vw,5.5rem);font-weight:900;letter-spacing:-0.03em;line-height:1;color:var(--text);margin-bottom:20px}
+.hero-sub{font-size:clamp(.9rem,1.5vw,1.1rem);max-width:520px;color:var(--text-sec);margin-bottom:0;line-height:1.7}
+.hero-lead{
+  font-size:.82rem;color:var(--text-muted);
+  max-width:720px;line-height:1.7;
+  margin-bottom:32px;
+}
+.hero-scroll{font-size:.65rem;letter-spacing:.3em;color:var(--text-muted);animation:bob 2s ease-in-out infinite}
+@keyframes bob{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:.8;transform:translateY(6px)}}
+@media(max-width:880px){
+  .hero-top{grid-template-columns:1fr}
+  .ph-wide .ph-img{height:220px}
+  .hero{padding:clamp(60px,10vw,90px) clamp(16px,4vw,32px)}
+}
+
+/* ═══════ CHAPTER TITLE — TWO-COLUMN ═══════ */
+.chapter-title{
+  min-height:70vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(48px,8vw,100px) 0;
+  position:relative;
+}
+.chapter-grid{
+  display:grid;grid-template-columns:1.4fr 1fr;
+  gap:clamp(24px,4vw,56px);align-items:center;
+  max-width:1280px;margin:0 auto;width:100%;
+  padding:0 clamp(20px,4vw,60px);
+}
+.chapter-title h2{
+  font-family:var(--serif);
+  font-size:clamp(3rem,10vw,7rem);
+  font-weight:900;line-height:1;letter-spacing:-0.03em;
+  color:var(--green-primary);
+}
+.chapter-title p{margin-top:20px;max-width:520px;font-size:1rem;line-height:1.65}
+.chapter-side{
+  background:rgba(255,255,255,0.07);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:20px;
+  padding:clamp(24px,3vw,36px);
+  color:#fff;position:relative;
+  transition:box-shadow .4s;
+}
+.chapter-side:hover{box-shadow:0 8px 40px rgba(0,0,0,0.12)}
+.chapter-side.light{
+  background:var(--white);
+  border:1px solid var(--border-lg);
+  color:var(--text);
+  box-shadow:0 4px 24px rgba(0,0,0,0.05);
+}
+.cs-label{
+  font-size:11px;letter-spacing:.3em;text-transform:uppercase;
+  font-weight:600;margin-bottom:18px;display:inline-block;
+  padding-left:30px;position:relative;opacity:.7;
+}
+.cs-label::before{content:"";position:absolute;left:0;top:50%;width:20px;height:1px;background:currentColor}
+@media(max-width:860px){
+  .chapter-grid{grid-template-columns:1fr;gap:20px}
+  .chapter-title{min-height:auto;padding:clamp(48px,8vw,80px) 0}
+}
+
+/* ── Companion: Locator Map (Ch01) ── */
+.loc-map{width:100%;height:auto;display:block}
+.loc-shape{transition:all .3s;cursor:pointer}
+.loc-group:hover .loc-shape{filter:brightness(1.15) drop-shadow(0 0 10px rgba(255,255,255,.35))}
+.loc-pulse{transform-origin:center;animation:locPulse 2.4s ease-in-out infinite}
+@keyframes locPulse{0%,100%{r:10;opacity:1}50%{r:16;opacity:.5}}
+.loc-stats{display:flex;gap:14px;margin-top:18px;flex-wrap:wrap}
+.loc-stat{font-size:.76rem;opacity:.75;border-left:2px solid rgba(255,255,255,.3);padding-left:10px;line-height:1.5}
+.loc-stat b{display:block;font-size:.95rem;font-weight:700;opacity:1}
+
+/* ── Companion: Arsenal (Ch02) ── */
+.arsenal{display:flex;flex-direction:column;gap:7px}
+.arsenal-item{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;border-radius:10px;cursor:pointer;
+  border:1px solid transparent;transition:all .3s;
+  background:rgba(0,0,0,.03);color:var(--text);
+}
+.arsenal-item:hover{background:var(--green-pale)}
+.arsenal-item.open{background:var(--green-primary);color:#fff;border-color:var(--green-primary)}
+.arsenal-num{font-family:var(--serif);font-weight:700;font-size:.82rem;width:22px;opacity:.5;flex-shrink:0}
+.arsenal-ic{width:22px;height:22px;border-radius:6px;background:var(--green-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0}
+.arsenal-item.open .arsenal-ic{background:rgba(255,255,255,.2)}
+.arsenal-name{font-size:.88rem;font-weight:500;flex:1}
+.arsenal-body{width:100%;max-height:0;overflow:hidden;transition:max-height .4s,padding .4s;font-size:.8rem;line-height:1.65;opacity:0}
+.arsenal-item.open .arsenal-body{max-height:180px;padding-top:10px;opacity:.9}
+
+/* ── Companion: Counter / Dots (Ch03) ── */
+.wave-num{font-family:var(--serif);font-size:clamp(3.5rem,8vw,5.5rem);font-weight:900;line-height:1;letter-spacing:-0.03em;display:inline}
+.wave-unit{font-size:1.2rem;font-weight:600;opacity:.7;margin-left:4px}
+.wave-caption{font-size:.85rem;opacity:.7;margin-top:6px}
+.wave-dots{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap}
+.wave-dot{width:30px;height:30px;border-radius:50%;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-size:.62rem;color:#fff;font-weight:600;transition:transform .25s,box-shadow .25s;border:2px solid rgba(255,255,255,.25)}
+.wave-dot:hover{transform:scale(1.25);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.wave-dot .dot-tip{position:absolute;bottom:120%;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:.7rem;padding:4px 10px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s}
+.wave-dot:hover .dot-tip{opacity:1}
+.wave-foot{font-size:.72rem;opacity:.55;margin-top:16px;letter-spacing:.05em}
+.wave-from{font-size:.78rem;opacity:.6;margin-top:12px;display:flex;align-items:center;gap:8px}
+.wave-from .old{text-decoration:line-through}
+.wave-from .arrow{margin:0 2px;opacity:.6}
+
+/* ── Companion: Specialty Grid (Finale) ── */
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.spec-card{
+  border-radius:14px;padding:14px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.15);transition:all .35s cubic-bezier(.16,1,.3,1);
+  background:rgba(255,255,255,.05);position:relative;overflow:hidden;
+}
+.spec-card:hover{background:rgba(255,255,255,.12);transform:translateY(-2px)}
+.spec-card.open{grid-column:1/-1;background:rgba(255,255,255,.15)}
+.spec-ph{
+  width:52px;height:52px;border-radius:50%;margin-bottom:10px;
+  background:rgba(255,255,255,.1);border:1px dashed rgba(255,255,255,.3);
+  display:flex;align-items:center;justify-content:center;font-size:.58rem;text-align:center;opacity:.6;line-height:1.3;color:#fff;
+}
+.spec-name{font-size:.95rem;font-weight:600;font-family:var(--serif)}
+.spec-stat{font-size:.72rem;opacity:.65;margin-top:3px}
+.spec-body{max-height:0;overflow:hidden;transition:max-height .45s;pointer-events:none}
+.spec-card.open .spec-body{max-height:220px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15);pointer-events:auto;font-size:.82rem;line-height:1.7;opacity:.85}
+
+/* ═══════ STATS GRID ═══════ */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;background:var(--border);
+  margin-top:clamp(40px,6vw,72px);
+  border-radius:var(--radius-md);
+  overflow:hidden;
+}
+.stat-card{
+  background:var(--white);
+  padding:clamp(28px,4vw,48px) clamp(20px,3vw,36px);
+  text-align:center;
+}
+.stat-num{
+  font-family:var(--serif);
+  font-size:clamp(2.2rem,5vw,4rem);
+  font-weight:700;
+  color:var(--green-primary);
+  line-height:1.1;
+  font-variant-numeric:tabular-nums;
+}
+.stat-num.gold-num{color:var(--gold)}
+.stat-label{font-size:clamp(.7rem,1vw,.82rem);color:var(--text-muted);margin-top:8px;line-height:1.5}
+.stat-unit{font-size:.55em;font-weight:400;color:var(--text-muted)}
+@media(max-width:780px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.stats-grid{grid-template-columns:1fr}}
+
+/* ═══════ CHART AREA ═══════ */
+.chart-wrap{width:100%;margin:clamp(32px,5vw,56px) 0}
+.chart-label{font-size:.72rem;color:var(--text-muted);letter-spacing:.15em;margin-bottom:12px;text-transform:uppercase}
+
+/* ═══════ CARDS ═══════ */
+.cards-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:clamp(12px,2vw,20px);
+  margin:clamp(32px,5vw,56px) 0;
+}
+.card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:var(--card-pad);
+  transition:border-color .4s,transform .4s,box-shadow .4s;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+}
+.card:hover{
+  border-color:var(--green-primary);
+  transform:translateY(-4px);
+  box-shadow:0 8px 30px rgba(0,0,0,0.06);
+}
+.card-icon{
+  width:48px;height:48px;
+  border-radius:50%;
+  background:var(--green-pale);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;color:var(--green-primary);
+  margin-bottom:16px;
+  transition:transform .4s,background .4s;
+}
+.card:hover .card-icon{transform:scale(1.1);background:var(--green-primary);color:#fff}
+.card-title{
+  font-family:var(--serif);
+  font-size:clamp(1rem,1.5vw,1.2rem);
+  font-weight:700;margin-bottom:8px;
+}
+.card-desc{font-size:clamp(.75rem,.95vw,.85rem);color:var(--text-sec);line-height:1.6}
+.card-stat{
+  font-family:var(--serif);
+  font-size:clamp(1.5rem,2.5vw,2rem);
+  font-weight:700;color:var(--gold);
+  margin-top:12px;
+}
+.card-hint{
+  font-size:.65rem;color:var(--text-muted);
+  margin-top:8px;
+  opacity:0;transform:translateY(8px);
+  transition:opacity .4s,transform .4s;
+}
+.card:hover .card-hint{opacity:1;transform:none}
+@media(max-width:780px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.cards-grid{grid-template-columns:1fr}}
+
+/* card expandable reveal */
+.card-expand-hidden{
+  max-height:0;overflow:hidden;
+  transition:max-height .5s cubic-bezier(.16,1,.3,1),opacity .4s;
+  opacity:0;
+}
+.card.expanded .card-expand-hidden{
+  max-height:300px;opacity:1;
+}
+.card-expand-hidden p{
+  font-size:.82rem;color:var(--text-sec);
+  line-height:1.7;padding-top:16px;
+  border-top:1px solid var(--border);
+  margin-top:16px;
+}
+.card-expand-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:.72rem;color:var(--green-primary);
+  margin-top:0;
+  background:none;border:none;cursor:pointer;
+  padding:0;font-family:inherit;
+  opacity:0;transform:translateY(6px);
+  transition:opacity .3s,transform .3s;
+}
+.card:hover .card-expand-btn{opacity:1;transform:none}
+.card-expand-btn::after{
+  content:"";display:inline-block;
+  width:5px;height:5px;
+  border-right:1.5px solid var(--green-primary);
+  border-bottom:1.5px solid var(--green-primary);
+  transform:rotate(45deg);transition:transform .3s;
+}
+.card.expanded .card-expand-btn::after{transform:rotate(-135deg)}
+.card.expanded .card-expand-btn span::after{content:"收起"}
+.card:not(.expanded) .card-expand-btn span::after{content:"了解更多 →"}
+
+/* ═══════ 2-COL CARDS ═══════ */
+.cards-2{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:clamp(16px,2.5vw,24px);
+  margin:clamp(32px,5vw,56px) 0;
+}
+@media(max-width:680px){.cards-2{grid-template-columns:1fr}}
+.side-card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:var(--card-pad);
+}
+.side-card-title{
+  font-family:var(--serif);
+  font-size:clamp(1.1rem,1.8vw,1.35rem);
+  font-weight:700;
+  color:var(--green-primary);
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.side-card ul{list-style:none;padding:0}
+.side-card li{
+  font-size:clamp(.82rem,1.1vw,.92rem);
+  color:var(--text-sec);
+  line-height:1.7;
+  padding-left:20px;
+  position:relative;
+  margin-bottom:10px;
+}
+.side-card li::before{
+  content:"";position:absolute;left:0;top:10px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--green-pale);border:1.5px solid var(--green-primary);
+}
+
+/* ═══════ CALLOUT ═══════ */
+.callout{
+  margin:clamp(32px,5vw,56px) 0;
+  padding:clamp(28px,4vw,44px);
+  background:var(--green-pale);
+  border-radius:var(--radius-lg);
+  display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(24px,4vw,40px);
+  align-items:center;
+}
+.callout-quote{position:relative;padding-left:20px}
+.callout-mark{
+  position:absolute;left:-4px;top:-10px;
+  font-family:var(--serif);font-size:4rem;line-height:1;
+  color:var(--green-primary);opacity:.25;font-weight:900;
+}
+.callout p{
+  font-family:var(--serif);
+  font-size:clamp(1.05rem,1.8vw,1.35rem);
+  color:var(--text);
+  line-height:1.6;
+  font-style:italic;
+  margin-bottom:0;
+}
+.callout-ph .ph-sm{aspect-ratio:4/3}
+@media(max-width:760px){.callout{grid-template-columns:1fr}.callout-ph .ph-sm{aspect-ratio:16/9}}
+
+/* ═══════ PARALLAX BAND ═══════ */
+.parallax-band{
+  padding:clamp(40px,7vw,80px) clamp(20px,4vw,60px);
+  background:var(--green-primary);
+  color:#fff;position:relative;
+}
+.parallax-band.gold-band{background:var(--gold)}
+.parallax-band.light-band{background:var(--green-pale);color:var(--text)}
+.pb-grid{
+  display:grid;grid-template-columns:2fr 3fr;
+  gap:clamp(24px,4vw,48px);align-items:center;
+  max-width:1100px;margin:0 auto;
+}
+.pb-grid .big-stat{
+  font-family:var(--serif);
+  font-size:clamp(3rem,9vw,7rem);
+  font-weight:900;
+  letter-spacing:-0.03em;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  text-align:left;
+}
+.pb-grid .big-stat-label{
+  font-size:clamp(.7rem,1.1vw,.85rem);
+  color:rgba(255,255,255,0.7);
+  margin-top:10px;letter-spacing:.1em;
+}
+.light-band .pb-grid .big-stat-label{color:var(--text-muted)}
+.pb-caption{
+  max-width:700px;margin:clamp(20px,3vw,32px) auto 0;
+  font-size:.85rem;line-height:1.7;text-align:center;
+}
+.light-band .pb-caption{color:var(--text-muted)}
+.pb-caption.desktop-only{margin-top:0;text-align:left;font-size:.82rem;opacity:.8}
+.mobile-only{display:none}
+@media(max-width:860px){
+  .pb-grid{grid-template-columns:1fr;text-align:center}
+  .pb-grid .big-stat{text-align:center}
+  .desktop-only{display:none!important}
+  .mobile-only{display:block}
+}
+
+/* ── Band 1: Sand/Oasis split bar ── */
+.split-bar{
+  width:100%;height:64px;border-radius:12px;overflow:hidden;
+  display:flex;position:relative;cursor:pointer;
+  box-shadow:0 4px 24px rgba(0,0,0,0.15);
+}
+.split-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:600;transition:flex-grow .4s;position:relative;overflow:hidden}
+.split-seg.sand{flex-grow:90.34;background:linear-gradient(135deg,#c9a86a,#b8964f);}
+.split-seg.green{flex-grow:9.66;background:linear-gradient(135deg,#388453,#2f9543);}
+.split-seg::before{content:"";position:absolute;inset:0;opacity:.12;background-image:var(--tex)}
+.split-seg.sand::before{--tex:radial-gradient(circle at 20% 50%,rgba(0,0,0,.3) 1px,transparent 2px),radial-gradient(circle at 70% 30%,rgba(0,0,0,.2) 1px,transparent 2px);background-size:8px 8px,12px 12px}
+.split-seg.green::before{--tex:radial-gradient(circle at 30% 50%,rgba(255,255,255,.5) 1px,transparent 2px),radial-gradient(circle at 75% 60%,rgba(255,255,255,.4) 1px,transparent 2px);background-size:10px 10px,14px 14px}
+.split-seg .seg-label{position:relative;z-index:1;white-space:nowrap}
+.split-seg .seg-detail{position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:.72rem;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10;line-height:1.5}
+.split-seg:hover .seg-detail{opacity:1}
+.split-fig{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;font-size:.76rem;opacity:.75}
+.split-fig span{border-left:2px solid rgba(255,255,255,.3);padding-left:8px}
+.split-fig span b{display:block;font-size:.9rem;opacity:1}
+.light-band .split-fig span{border-left-color:rgba(0,0,0,.15)}
+
+/* ── Band 2: Coverage ladder ── */
+.ladder{width:100%;max-width:480px;margin:0 auto}
+.ladder-row{
+  display:flex;align-items:center;gap:12px;margin-bottom:8px;cursor:pointer;
+}
+.ladder-bar{
+  height:36px;border-radius:6px;
+  background:linear-gradient(90deg,var(--green-primary),var(--green-bright));
+  display:flex;align-items:center;justify-content:flex-end;padding-right:10px;
+  font-size:.72rem;font-weight:700;color:#fff;
+  transition:transform .3s,box-shadow .3s;
+  transform-origin:left;
+}
+.ladder-row:hover .ladder-bar{transform:scaleY(1.1);box-shadow:0 4px 16px rgba(56,132,83,0.3)}
+.ladder-meta{display:flex;align-items:baseline;gap:8px;min-width:90px}
+.ladder-year{font-family:var(--serif);font-weight:700;font-size:.85rem;color:var(--green-primary)}
+.light-band .ladder-year{color:var(--green-dark)}
+.ladder-val{font-size:.75rem;opacity:.6}
+.ladder-ev{font-size:.78rem;color:var(--text-muted);line-height:1.5;max-width:480px;margin-top:10px;min-height:24px}
+.ladder-tree{font-size:.9rem;margin-left:auto}
+
+/* ── Band 3: Species stacked bar ── */
+.stack-wrap{width:100%;max-width:500px;margin:0 auto}
+.stack-bar{
+  width:100%;height:56px;border-radius:10px;overflow:hidden;display:flex;
+  box-shadow:0 4px 24px rgba(0,0,0,0.15);
+}
+.stack-seg{
+  height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:.72rem;font-weight:700;color:#fff;cursor:pointer;
+  transition:flex-grow .4s,filter .3s;position:relative;
+}
+.stack-seg:hover{filter:brightness(1.15)}
+.stack-seg .st-tip{position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;font-size:.7rem;padding:6px 12px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;z-index:10;line-height:1.5;font-weight:500}
+.stack-seg:hover .st-tip{opacity:1}
+.stack-legend{display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;font-size:.76rem}
+.stack-legend span{display:flex;align-items:center;gap:6px}
+.stack-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.stack-sub{font-size:.78rem;opacity:.7;margin-top:12px;line-height:1.5;min-height:24px}
+
+/* ═══════ PLACEHOLDERS — contained image cards ═══════ */
+.ph-sm{
+  padding:clamp(50px,7vw,80px) clamp(16px,2vw,24px);
+  background:var(--bg-light);
+  border:1px dashed var(--border-lg);
+  border-radius:var(--radius-lg);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  color:var(--text-muted);
+  font-size:clamp(.65rem,.95vw,.75rem);
+  text-align:center;
+  margin:clamp(24px,4vw,40px) 0;
+}
+/* when an image is injected → turn into a contained card (NOT full-bleed) */
+.ph-sm:has(> .ph-img),.ph-split .ph-sm{
+  padding:0;
+  display:flex;flex-direction:column;
+  height:auto;
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+  margin:clamp(24px,4vw,40px) 0;
+}
+.ph-img{
+  position:relative;
+  width:100%;
+  height:var(--ph-img-h,200px);
+  overflow:hidden;
+  flex-shrink:0;
+}
+.ph-img img{width:100%;height:100%;object-fit:cover;display:block}
+/* inline chart placeholders (森林覆盖率/青土湖/志愿者) — shorter side cards */
+.ic-side .ph-img{height:170px}
+.ic-side .ph-sm:has(> .ph-img){box-shadow:none;border:1px solid var(--border)}
+
+.ph-split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:clamp(24px,4vw,40px) 0}
+@media(max-width:600px){.ph-split{grid-template-columns:1fr} .ph-img{height:160px}}
+.ph-full{
+  width:100%;aspect-ratio:16/9;
+  background:var(--bg-light);
+  border:1px dashed var(--border-lg);
+  border-radius:var(--radius-lg);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  color:var(--text-muted);font-size:.8rem;
+  margin:clamp(24px,4vw,40px) 0;
+}
+.ph-full:has(> .ph-img){
+  padding:0;height:auto;aspect-ratio:auto;
+  border:1px solid var(--border);background:#fff;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+.ph-full .ph-img{height:260px}
+@media(max-width:600px){.ph-full .ph-img{height:180px}}
+
+/* caption under every image */
+.ph-caption{
+  padding:10px 16px 12px;
+  font-size:.78rem;
+  line-height:1.5;
+  color:var(--text-sec);
+  border-top:1px solid var(--border);
+  width:100%;
+  box-sizing:border-box;
+}
+.ph-caption:empty{display:none}
+.ph-caption strong{color:var(--text);font-weight:600}
+
+/* before/after slider faces use ba-face-img and fill the slider box */
+.ba-face-img{position:absolute;inset:0;z-index:0}
+.ba-face-img img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* ═══════ IMAGE INJECTION (replaces placeholders) ═══════ */
+/* video stage (replaces SVG footprint animation) */
+.fp-video{
+  position:absolute;inset:0;
+  background:#1a1206;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.fp-video video{width:100%;height:100%;object-fit:cover;display:block}
+.fp-video-fallback{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  color:rgba(255,255,255,.7);font-size:.8rem;gap:8px;
+  background:#1a1206 url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 150%22 fill=%22none%22><path d=%22M50 10C30 10 18 28 18 48C18 68 30 82 50 82C70 82 82 68 82 48C82 28 70 10 50 10Z%22 stroke=%22rgba(207,144,0,.4%22 stroke-width=%222%22/><ellipse cx=%2250%22 cy=%22138%22 rx=%2230%22 ry=%2210%22 stroke=%22rgba(207,144,0,.25%22 stroke-width=%221.5%22/></svg>') center/28% no-repeat;
+  pointer-events:none;z-index:3;
+  animation:fpFade 2.4s ease-out forwards;
+}
+@keyframes fpFade{0%,35%{opacity:1}100%{opacity:0;visibility:hidden}}
+.fp-video.playing .fp-video-fallback{display:none}
+@media(prefers-reduced-motion:reduce){.fp-video-fallback{animation:none;opacity:0}}
+
+/* ═══════ BEFORE / AFTER SLIDER ═══════ */
+.ba-slider{
+  position:relative;width:100%;aspect-ratio:16/8;
+  border-radius:var(--radius-lg);overflow:hidden;
+  margin:clamp(24px,4vw,40px) 0;
+  cursor:ew-resize;user-select:none;touch-action:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.1);
+}
+.ba-before,.ba-after{
+  position:absolute;inset:0;
+}
+.ba-before{z-index:1}
+.ba-after{z-index:2;clip-path:inset(0 50% 0 0)}
+.ba-tag{
+  position:absolute;top:16px;z-index:5;
+  padding:5px 14px;border-radius:20px;
+  font-size:.7rem;font-weight:600;letter-spacing:.05em;
+}
+.ba-tag-before{left:16px;background:rgba(0,0,0,0.55);color:#fff}
+.ba-tag-after{right:16px;background:rgba(56,132,83,0.85);color:#fff}
+.ba-handle{
+  position:absolute;top:0;bottom:0;left:50%;width:4px;z-index:4;
+  transform:translateX(-50%);pointer-events:none;
+}
+.ba-handle-line{
+  position:absolute;top:0;bottom:0;left:50%;width:3px;
+  background:#fff;transform:translateX(-50%);
+  box-shadow:0 0 12px rgba(0,0,0,0.3);
+}
+.ba-handle-btn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:44px;height:44px;border-radius:50%;
+  background:#fff;display:flex;align-items:center;justify-content:center;
+  font-size:1rem;color:var(--green-primary);font-weight:700;
+  box-shadow:0 4px 20px rgba(0,0,0,0.2);
+  letter-spacing:-2px;
+}
+.ba-range{
+  position:absolute;inset:0;width:100%;height:100%;z-index:6;
+  opacity:0;cursor:ew-resize;margin:0;
+  -webkit-appearance:none;appearance:none;
+}
+.ba-range::-webkit-slider-thumb{-webkit-appearance:none;width:60px;height:100%;background:transparent;cursor:ew-resize}
+.ba-range::-moz-range-thumb{width:60px;height:100%;background:transparent;border:none;cursor:ew-resize}
+.ba-caption{
+  display:flex;gap:24px;justify-content:center;flex-wrap:wrap;
+  font-size:.8rem;color:var(--text-muted);margin-top:16px;
+}
+.ba-caption span b{display:block;font-size:.9rem;color:var(--text)}
+
+/* ═══════ LIVE STREAMING BADGES ═══════ */
+.live-layout{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;
+  margin:clamp(24px,4vw,40px) 0;
+}
+.live-badges{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+}
+.live-badge{
+  background:var(--white);border:1px solid var(--border-lg);
+  border-radius:var(--radius-md);padding:clamp(18px,2.5vw,24px);
+  text-align:center;cursor:pointer;
+  transition:transform .3s,box-shadow .3s,border-color .3s;
+  position:relative;overflow:hidden;
+}
+.live-badge::before{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(56,132,83,0.06),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.live-badge:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,0.08);border-color:var(--green-primary)}
+.live-badge:hover::before{opacity:1}
+.live-badge.gold::before{background:linear-gradient(135deg,rgba(207,144,0,0.08),transparent)}
+.live-badge.gold:hover{border-color:var(--gold)}
+.live-badge-num{
+  font-family:var(--serif);font-size:clamp(1.8rem,3.5vw,2.6rem);
+  font-weight:900;line-height:1;color:var(--green-primary);position:relative;
+}
+.live-badge.gold .live-badge-num{color:var(--gold)}
+.live-badge-num span{font-size:.85rem;font-weight:600;color:var(--text-muted);margin-left:3px}
+.live-badge-label{font-size:.74rem;color:var(--text-muted);margin-top:6px;position:relative}
+.live-tip{font-size:.76rem;color:var(--text-muted);text-align:center;margin-top:8px;min-height:20px}
+@media(max-width:700px){.live-layout{grid-template-columns:1fr}.live-badges{grid-template-columns:1fr 1fr}}
+
+/* ═══════ DUO SIDE-BY-SIDE (双手与政策) ═══════ */
+.duo{
+  display:grid;grid-template-columns:1fr 1fr;gap:20px;
+}
+.duo-col{
+  border-radius:var(--radius-lg);padding:clamp(24px,3vw,32px);
+  display:flex;flex-direction:column;gap:18px;
+  transition:box-shadow .3s,transform .3s;
+}
+.duo-col:hover{box-shadow:0 8px 32px rgba(0,0,0,0.08)}
+.duo-villagers{background:linear-gradient(135deg,rgba(207,144,0,0.08),var(--white));border:1px solid rgba(207,144,0,0.2)}
+.duo-gov{background:linear-gradient(135deg,rgba(56,132,83,0.08),var(--white));border:1px solid rgba(56,132,83,0.2)}
+.duo-head{display:flex;align-items:center;gap:14px}
+.duo-icon{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;
+}
+.duo-villagers .duo-icon{background:rgba(207,144,0,0.15)}
+.duo-gov .duo-icon{background:rgba(56,132,83,0.12)}
+.duo-title{font-family:var(--serif);font-size:1.1rem;font-weight:700}
+.duo-sub{font-size:.76rem;color:var(--text-muted);margin-top:2px}
+.duo-stats{display:flex;gap:12px;flex-wrap:wrap}
+.duo-stat{text-align:center;min-width:64px}
+.duo-stat-num{font-family:var(--serif);font-size:1.6rem;font-weight:900;line-height:1}
+.duo-villagers .duo-stat-num{color:var(--gold)}
+.duo-gov .duo-stat-num{color:var(--green-primary)}
+.duo-stat-label{font-size:.68rem;color:var(--text-muted);margin-top:3px}
+.duo-body{font-size:.88rem;line-height:1.78;color:var(--text)}
+.duo-body p{margin-bottom:12px}
+.duo-body p:last-child{margin-bottom:0}
+@media(max-width:760px){.duo{grid-template-columns:1fr}}
+
+/* ═══════ STORY TIMELINE (十个勤天) ═══════ */
+.story-tl{
+  margin-top:20px;padding:clamp(24px,3vw,36px);
+  background:var(--green-pale);border-radius:var(--radius-lg);
+  position:relative;
+}
+.story-tl::before{
+  content:"";position:absolute;left:32px;top:36px;bottom:36px;width:2px;
+  background:linear-gradient(to bottom,var(--green-primary),var(--gold));
+}
+.story-tl-item{
+  display:flex;gap:18px;margin-bottom:18px;position:relative;
+}
+.story-tl-item:last-child{margin-bottom:0}
+.story-tl-badge{
+  min-width:64px;flex-shrink:0;
+  font-family:var(--serif);font-size:.78rem;font-weight:700;
+  color:var(--white);background:var(--green-primary);
+  padding:5px 10px;border-radius:20px;text-align:center;
+  position:relative;z-index:1;align-self:flex-start;
+}
+.story-tl-item:nth-child(2) .story-tl-badge{background:#2f9543}
+.story-tl-item:nth-child(3) .story-tl-badge{background:var(--gold)}
+.story-tl-item:nth-child(4) .story-tl-badge{background:var(--green-deep)}
+.story-tl-body{font-size:.9rem;color:var(--text);line-height:1.8;flex:1}
+.story-tl-body p{margin-bottom:0}
+@media(max-width:600px){
+  .story-tl::before{left:24px}
+  .story-tl-badge{min-width:54px;font-size:.72rem}
+}
+
+/* ═══════ TIMELINE (interactive path) ═══════ */
+.tl-layout{
+  display:grid;
+  grid-template-columns:1fr 340px;
+  gap:clamp(24px,3.5vw,48px);
+  align-items:start;
+  margin:clamp(24px,4vw,40px) 0;
+}
+@media(max-width:860px){.tl-layout{grid-template-columns:1fr}}
+.tl-list{
+  position:relative;
+  padding-left:28px;
+}
+.tl-list::before{
+  content:"";position:absolute;left:8px;top:12px;bottom:12px;width:2px;background:var(--border-lg);
+}
+.tl-item{
+  position:relative;
+  padding:clamp(10px,1.5vw,16px) clamp(12px,2vw,20px);
+  margin-bottom:4px;
+  border-radius:var(--radius-md);
+  cursor:pointer;
+  transition:background .3s,transform .3s,box-shadow .3s;
+  display:flex;align-items:flex-start;gap:14px;
+}
+.tl-item:hover{
+  background:var(--green-pale);
+  transform:translateX(4px);
+}
+.tl-item.active{
+  background:var(--green-pale);
+  box-shadow:0 2px 12px rgba(56,132,83,0.1);
+}
+.tl-item.active .tl-dot{
+  background:var(--green-primary);
+  box-shadow:0 0 0 4px rgba(56,132,83,0.15);
+  transform:scale(1.2);
+}
+.tl-dot{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--border-lg);
+  border:2px solid var(--white);
+  flex-shrink:0;
+  margin-top:5px;
+  position:absolute;left:-22px;
+  transition:background .3s,transform .3s,box-shadow .3s;
+}
+.tl-year{
+  font-family:var(--serif);
+  font-size:clamp(1rem,1.6vw,1.25rem);
+  font-weight:700;color:var(--green-primary);
+  margin-bottom:2px;
+  line-height:1.2;
+}
+.tl-item.active .tl-year{color:var(--green-dark)}
+.tl-text{font-size:clamp(.8rem,1vw,.9rem);color:var(--text-sec);line-height:1.6}
+.tl-right{
+  display:flex;flex-direction:column;gap:16px;
+}
+.tl-chart{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:clamp(12px,1.5vw,18px);
+  position:sticky;top:80px;
+}
+@media(max-width:860px){.tl-chart{position:static}}
+.tl-chart svg{width:100%;height:auto;display:block}
+.tl-node{cursor:pointer;transition:opacity .3s}
+.tl-node:hover circle{stroke-width:3}
+.tl-node.active circle:first-child{
+  fill:var(--green-primary);
+  stroke:var(--green-primary);
+}
+.tl-node.active circle:nth-child(2){fill:#fff}
+.tl-node.active text{fill:var(--green-dark);font-weight:900}
+.tl-node.gold-active circle:first-child{
+  fill:var(--cf9000, #cf9000);
+  stroke:var(--gold);
+}
+/* path animation */
+#tlPathActive{
+  transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1);
+}
+.tl-detail-card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:clamp(18px,2.5vw,28px);
+  transition:border-color .4s;
+}
+.tl-detail-card[data-active="1"]{border-color:var(--green-primary);box-shadow:0 4px 20px rgba(56,132,83,0.08)}
+.tl-detail-card .tl-dl{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--green-primary);font-weight:500;margin-bottom:8px;
+}
+.tl-detail-card .tl-dy{
+  font-family:var(--serif);font-size:clamp(1.4rem,2.5vw,1.8rem);
+  font-weight:700;color:var(--green-primary);line-height:1.1;
+  font-variant-numeric:tabular-nums;margin-bottom:4px;
+}
+.tl-detail-card .tl-dt{
+  font-family:var(--serif);font-size:clamp(1rem,1.5vw,1.2rem);
+  font-weight:700;color:var(--text);margin-bottom:12px;line-height:1.3;
+}
+.tl-detail-card .tl-db{
+  font-size:clamp(.82rem,1vw,.92rem);color:var(--text-sec);line-height:1.8;
+}
+.tl-detail-card.empty{
+  display:block;
+  border-style:dashed;
+  border-color:var(--border-lg);
+  background:var(--bg-warm);
+  box-shadow:none;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:.82rem;
+  padding:clamp(18px,2.5vw,24px);
+}
+.tl-detail-card.empty .empty-icon{
+  font-size:1.4rem;margin-bottom:8px;opacity:.5;
+}
+
+/* ═══════ TIMELINE (legacy — kept for safety) ═══════ */
+.timeline{
+  position:relative;padding-left:36px;
+  margin:clamp(32px,5vw,56px) 0;
+}
+.timeline::before{
+  content:"";position:absolute;left:8px;top:8px;bottom:8px;width:1px;background:var(--border-lg);
+}
+.titem{
+  position:relative;
+  padding-bottom:clamp(24px,3vw,36px);
+  opacity:0;transform:translateX(-12px);
+  transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);
+}
+.titem.in{opacity:1;transform:none}
+.titem::before{
+  content:"";position:absolute;left:-32px;top:6px;
+  width:10px;height:10px;border-radius:50%;
+  background:var(--green-primary);border:2px solid var(--white);
+}
+.titem-year{
+  font-family:var(--serif);
+  font-size:clamp(1.1rem,1.8vw,1.35rem);
+  font-weight:700;color:var(--green-primary);
+  margin-bottom:4px;
+}
+.titem-text{font-size:clamp(.82rem,1.1vw,.92rem);color:var(--text-sec);line-height:1.6}
+
+/* ═══════ HORIZONTAL SCROLL ═══════ */
+.h-scroll{
+  display:flex;gap:clamp(12px,2vw,20px);
+  overflow-x:auto;
+  padding:clamp(16px,2vw,24px) 0;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+}
+.h-scroll::-webkit-scrollbar{height:3px}
+.h-scroll::-webkit-scrollbar-thumb{background:var(--green-primary);border-radius:2px}
+.h-scroll>*{flex:0 0 150px;scroll-snap-align:start}
+
+/* ═══════ FOOTPRINT ANIMATION ═══════ */
+.fp-section{padding:0;text-align:left}
+.fp-stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:clamp(10px,2vw,16px);
+  margin:clamp(24px,4vw,36px) 0;
+}
+.fp-stat{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:clamp(14px,2vw,20px) clamp(10px,1.5vw,14px);
+  text-align:center;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+.fp-stat-num{
+  font-family:var(--serif);
+  font-size:clamp(1.4rem,3vw,2.2rem);
+  font-weight:800;
+  color:var(--gold);
+  line-height:1;
+  margin-bottom:5px;
+}
+.fp-stat-num.green{color:var(--green-primary)}
+.fp-stat-num span{
+  font-size:.42em;font-weight:600;color:var(--text-muted);margin-left:2px;
+}
+.fp-stat-label{
+  font-size:.72rem;color:var(--text-muted);line-height:1.4;
+}
+.fp-layout{
+  display:grid;
+  grid-template-columns:1fr 1.3fr;
+  gap:clamp(20px,3vw,36px);
+  align-items:start;
+}
+.fp-media{display:flex;flex-direction:column;align-items:center;gap:14px}
+.fp-stage{
+  position:relative;
+  width:100%;
+  max-width:380px;
+  aspect-ratio:16/9;
+  background:#1a1206;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.15);
+}
+.fp-cards{display:flex;flex-direction:column;gap:14px}
+.fp-card{
+  display:flex;gap:14px;align-items:flex-start;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:clamp(14px,2vw,20px);
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+.fp-card-icon{
+  font-size:1.6rem;
+  width:44px;height:44px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--yellow-pale);
+  border-radius:var(--radius-sm);
+  flex-shrink:0;
+}
+.fp-card-body strong{
+  display:block;
+  font-size:.88rem;
+  color:var(--text);
+  margin-bottom:4px;
+  font-weight:600;
+}
+.fp-card-body p{
+  font-size:.78rem;
+  color:var(--text-sec);
+  line-height:1.6;
+  margin:0;
+}
+@media(max-width:780px){
+  .fp-stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .fp-stat{padding:12px 6px}
+  .fp-layout{grid-template-columns:1fr}
+  .fp-stage{max-width:100%}
+}
+
+.fp-restart{
+  display:inline-block;margin-top:20px;
+  padding:8px 20px;background:none;
+  border:1px solid var(--border-lg);
+  border-radius:8px;
+  color:var(--text-sec);
+  font-size:.72rem;letter-spacing:.1em;
+  cursor:pointer;transition:border-color .3s,color .3s;
+}
+.fp-restart:hover{border-color:var(--green-primary);color:var(--green-primary)}
+
+/* ═══════ DIVIDER ═══════ */
+.divider{height:1px;background:var(--border);width:100%}
+
+/* ═══════ FOOTER ═══════ */
+.footer{
+  padding:clamp(40px,6vw,72px) clamp(20px,4vw,60px);
+  text-align:center;
+  font-size:.72rem;color:var(--text-muted);letter-spacing:.05em;
+}
+
+/* ═══════ FINAL CTA ═══════ */
+.finale-cta{
+  padding:clamp(80px,14vw,160px) clamp(20px,4vw,60px);
+  text-align:center;
+}
+.finale-cta h2{
+  font-family:var(--serif);
+  font-size:clamp(2.2rem,5.5vw,4.2rem);
+  font-weight:700;line-height:1.1;
+}
+
+/* ═══════ SVG ANIMATION CLASSES ═══════ */
+.draw-line{stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset 1.8s cubic-bezier(.16,1,.3,1)}
+.draw-line.in{stroke-dashoffset:0}
+.draw-area{opacity:0;transition:opacity 1.2s ease .6s}
+.draw-area.in{opacity:1}
+.route-path{stroke-dasharray:2000;stroke-dashoffset:2000;transition:stroke-dashoffset 3s cubic-bezier(.16,1,.3,1)}
+.route-path.in{stroke-dashoffset:0}
+.route-dot{opacity:0;transition:opacity .5s ease}
+.route-dot.in{opacity:1}
+
+/* ═══════ INTERACTIVE CHART → TEXT PANEL ═══════ */
+.ic-layout{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:clamp(20px,3vw,40px);
+  align-items:start;
+  margin:clamp(32px,5vw,56px) 0;
+}
+/* 沙漠中的轨迹 — 左图占 3/4 */
+.ic-layout.wide{grid-template-columns:3fr 1fr}
+@media(max-width:780px){.ic-layout,.ic-layout.wide{grid-template-columns:1fr}}
+.ic-chart{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:clamp(16px,2vw,24px);
+  position:sticky;
+  top:80px;
+}
+@media(max-width:780px){.ic-chart{position:static}}
+.ic-chart svg{width:100%;height:auto;display:block}
+.ic-clickable{cursor:pointer;transition:opacity .3s,transform .3s,filter .3s}
+.ic-clickable:hover{opacity:.85}
+.ic-clickable.active{filter:drop-shadow(0 0 6px rgba(56,132,83,0.35))}
+.ic-clickable.active circle,
+.ic-clickable.active path{stroke:#fff;stroke-width:2}
+
+/* ═══════ LAND COMPOSITION — stats row + bar + pie ═══════ */
+.land-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:clamp(12px,2vw,20px);
+  margin:clamp(24px,4vw,36px) 0;
+}
+.land-stat{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  padding:clamp(16px,2.5vw,24px) clamp(12px,2vw,18px);
+  text-align:center;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+.land-stat-num{
+  font-family:var(--serif);
+  font-size:clamp(1.6rem,3.5vw,2.6rem);
+  font-weight:800;
+  color:var(--green-dark);
+  line-height:1;
+  margin-bottom:6px;
+}
+.land-stat-num.gold{color:var(--gold)}
+.land-stat-num span{
+  font-size:.45em;
+  font-weight:600;
+  color:var(--text-muted);
+  margin-left:2px;
+}
+.land-stat-label{
+  font-size:.78rem;
+  color:var(--text-muted);
+  line-height:1.4;
+}
+.land-bar-wrap{margin:clamp(16px,3vw,24px) 0 clamp(24px,4vw,36px)}
+.land-bar{
+  display:flex;
+  width:100%;
+  height:38px;
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--border);
+}
+.land-bar-seg{
+  display:flex;align-items:center;justify-content:center;
+  font-size:.72rem;font-weight:600;color:#fff;
+  letter-spacing:.02em;
+  transition:flex-grow .4s;
+  min-width:fit-content;
+}
+.land-bar-seg.desert{background:linear-gradient(90deg,#cf9000,#e0a830);padding:0 12px}
+.land-bar-seg.oasis{background:linear-gradient(90deg,#388453,#2f9543);padding:0 12px}
+.land-pie-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+}
+.land-pie-wrap svg{max-width:180px}
+.land-pie-legend{
+  display:flex;gap:18px;
+  font-size:.76rem;color:var(--text-sec);
+  flex-wrap:wrap;justify-content:center;
+}
+.land-legend-item{display:flex;align-items:center;gap:6px}
+.land-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+@media(max-width:780px){
+  .land-stats{grid-template-columns:repeat(3,1fr);gap:8px}
+  .land-stat{padding:12px 6px}
+  .land-stat-num{font-size:clamp(1.2rem,4vw,1.8rem)}
+  .land-bar{height:32px}
+}
+
+.ic-side{
+  display:flex;flex-direction:column;gap:16px;
+}
+.ic-detail-card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:clamp(24px,3vw,36px);
+  transition:border-color .4s;
+}
+.ic-detail-card[data-active="1"]{border-color:var(--green-primary);box-shadow:0 4px 20px rgba(56,132,83,0.08)}
+.ic-detail-label{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--green-primary);font-weight:500;margin-bottom:12px;
+}
+.ic-detail-num{
+  font-family:var(--serif);font-size:clamp(2rem,4vw,3rem);
+  font-weight:700;color:var(--green-primary);line-height:1.1;
+  font-variant-numeric:tabular-nums;
+}
+.ic-detail-num.gold-num{color:var(--gold)}
+.ic-detail-title{
+  font-family:var(--serif);font-size:clamp(1.05rem,1.6vw,1.25rem);
+  font-weight:700;color:var(--text);margin:8px 0 16px;line-height:1.3;
+}
+.ic-detail-body{
+  font-size:clamp(.82rem,1vw,.92rem);color:var(--text-sec);line-height:1.8;
+}
+.ic-detail-meta{
+  display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;
+  padding-top:16px;border-top:1px solid var(--border);
+}
+.ic-detail-meta-item{
+  display:flex;flex-direction:column;gap:2px;
+}
+.ic-detail-meta-k{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);
+}
+.ic-detail-meta-v{
+  font-family:var(--serif);font-size:1rem;font-weight:700;color:var(--text);
+}
+/* Chart inline popup (appears near the clicked bar/point) */
+.chart-popup{
+  position:absolute;
+  background:#fff;
+  border:1px solid var(--green-primary);
+  border-radius:var(--radius-md);
+  padding:12px 16px;
+  box-shadow:0 8px 30px rgba(56,132,83,0.12);
+  min-width:200px;
+  max-width:260px;
+  z-index:100;
+  pointer-events:none;
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .3s,transform .3s;
+}
+.chart-popup.show{
+  opacity:1;
+  transform:none;
+}
+.chart-popup::before{
+  content:"";position:absolute;
+  left:20px;bottom:-6px;
+  width:10px;height:10px;
+  background:#fff;
+  border-right:1px solid var(--green-primary);
+  border-bottom:1px solid var(--green-primary);
+  transform:rotate(45deg);
+}
+.chart-popup.pos-top::before{
+  bottom:auto;top:-6px;
+  border-right:none;border-bottom:none;
+  border-left:1px solid var(--green-primary);
+  border-top:1px solid var(--green-primary);
+}
+.chart-popup .cp-label{
+  font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--green-primary);font-weight:600;margin-bottom:4px;
+}
+.chart-popup .cp-num{
+  font-family:var(--serif);font-size:1.4rem;font-weight:700;
+  color:var(--green-primary);line-height:1.1;
+}
+.chart-popup .cp-num.gold-num{color:var(--gold)}
+.chart-popup .cp-text{
+  font-size:.78rem;color:var(--text-sec);line-height:1.6;margin-top:6px;
+}
+.ic-hint{
+  font-size:.72rem;color:var(--text-muted);
+  display:flex;align-items:center;gap:6px;
+  margin-top:0;
+}
+.ic-hint::before{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--green-primary);opacity:.5;
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ═══════ STAT-CARD DETAIL POPUP (core results / tourism / green economy) ═══════ */
+.stat-card{
+  cursor:pointer;
+}
+.stat-card.active{
+  border:2px solid var(--green-primary);
+  background:var(--green-pale);
+}
+.stat-card.active .stat-num{color:var(--green-primary) !important}
+.stat-detail-card{
+  background:var(--white);
+  border:1px solid var(--green-primary);
+  border-radius:var(--radius-lg);
+  padding:clamp(20px,3vw,32px);
+  margin-top:16px;
+  box-shadow:0 8px 30px rgba(56,132,83,0.08);
+  display:none;
+}
+.stat-detail-card.open{display:block}
+.stat-detail-card.empty{
+  display:block;
+  border-style:dashed;
+  border-color:var(--border-lg);
+  background:var(--bg-warm);
+  box-shadow:none;
+  text-align:center;
+  color:var(--text-muted);
+  font-size:.82rem;
+  padding:clamp(18px,2.5vw,24px);
+}
+.stat-detail-card.empty .empty-icon{
+  font-size:1.4rem;
+  margin-bottom:8px;
+  opacity:.5;
+}
+.stat-detail-card[data-filled="1"]{display:block}
+.stat-detail-card .slabel{
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--green-primary);font-weight:500;margin-bottom:8px;
+}
+.stat-detail-card .snum{
+  font-family:var(--serif);font-size:clamp(2rem,4vw,2.8rem);
+  font-weight:700;color:var(--green-primary);line-height:1.1;
+  font-variant-numeric:tabular-nums;
+}
+.stat-detail-card .snum.gold-num{color:var(--gold)}
+.stat-detail-card .stitle{
+  font-family:var(--serif);font-size:clamp(1rem,1.5vw,1.2rem);
+  font-weight:700;color:var(--text);margin:6px 0 12px;line-height:1.3;
+}
+.stat-detail-card .sbody{
+  font-size:clamp(.82rem,1vw,.92rem);color:var(--text-sec);line-height:1.8;
+}
+
+/* ═══════ CLICK EXPANDABLE SECTIONS ═══════ */
+.expandable-block{
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  margin:clamp(20px,3vw,36px) 0;
+  overflow:hidden;
+  background:var(--white);
+}
+.expand-toggle{
+  width:100%;background:none;border:none;
+  padding:clamp(24px,3vw,36px) var(--card-pad);
+  display:flex;align-items:center;gap:16px;
+  cursor:pointer;text-align:left;
+  font-family:var(--sans);font-size:1rem;
+  transition:background .3s;
+}
+.expand-toggle:hover{background:var(--green-pale)}
+.expand-toggle-icon{
+  width:48px;height:48px;border-radius:50%;
+  background:var(--green-pale);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;color:var(--green-primary);
+  flex-shrink:0;
+  transition:transform .5s cubic-bezier(.16,1,.3,1),background .3s,color .3s;
+}
+.expand-toggle:hover .expand-toggle-icon{background:var(--green-primary);color:#fff}
+.expandable-block.open .expand-toggle-icon{transform:rotate(45deg);background:var(--green-primary);color:#fff}
+.expand-toggle-text h3{
+  font-family:var(--serif);font-size:clamp(1.1rem,1.8vw,1.35rem);
+  font-weight:700;margin:0 0 4px;color:var(--text);
+}
+.expand-toggle-text p{font-size:.85rem;color:var(--text-muted);margin:0}
+.expand-content{
+  max-height:0;overflow:hidden;
+  transition:max-height .6s cubic-bezier(.16,1,.3,1),padding .4s;
+  padding:0 var(--card-pad);
+}
+.expandable-block.open .expand-content{
+  max-height:1200px;
+  padding:0 var(--card-pad) var(--card-pad);
+}
+.expand-content-inner{
+  padding-top:24px;
+  border-top:1px solid var(--border);
+}
+.expand-content-inner p{
+  font-size:.92rem;color:var(--text-sec);
+  line-height:1.8;margin-bottom:16px;
+}
+.expand-content-inner p:last-child{margin-bottom:0}
+.expand-content-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:16px;margin-top:20px;
+}
+@media(max-width:600px){.expand-content-stats{grid-template-columns:1fr}}
+.expand-content-stat{
+  text-align:center;padding:20px;
+  background:var(--green-pale);border-radius:var(--radius-md);
+}
+.expand-content-stat-num{
+  font-family:var(--serif);font-size:1.6rem;
+  font-weight:700;color:var(--green-primary);
+}
+.expand-content-stat-label{font-size:.72rem;color:var(--text-muted);margin-top:4px}
+
+/* ═══════ DOT NAVIGATION ═══════ */
+.dot-nav{
+  position:fixed;right:24px;top:50%;transform:translateY(-50%);
+  z-index:900;
+  display:flex;flex-direction:column;gap:14px;
+  opacity:0;transition:opacity .4s;
+}
+.dot-nav.in{opacity:1}
+.dot-nav-item{
+  width:10px;height:10px;border-radius:50%;
+  background:var(--border-lg);border:none;cursor:pointer;
+  padding:0;transition:background .3s,transform .3s;
+  position:relative;
+}
+.dot-nav-item.active{background:var(--green-primary);transform:scale(1.2)}
+.dot-nav-item:hover{background:var(--green-primary);transform:scale(1.2)}
+.dot-nav-label{
+  position:absolute;right:20px;top:50%;transform:translateY(-50%);
+  font-size:11px;color:var(--text-muted);white-space:nowrap;
+  opacity:0;transition:opacity .3s;
+  pointer-events:none;background:rgba(255,255,255,0.95);
+  padding:4px 8px;border-radius:4px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+.dot-nav-item:hover .dot-nav-label{opacity:1}
+@media(max-width:780px){.dot-nav{display:none}}
+
+/* ═══════ SVG chart fill ═══════ */
+.draw-area-grow{transform-origin:bottom;transform:scaleY(0);transition:transform 1.2s cubic-bezier(.16,1,.3,1)}
+.draw-area-grow.in{transform:scaleY(1)}
+
+/* ═══════════════════════════════════════════════════════
+   BACKGROUND IMAGE LAYERS — semi-transparent section bgs
+   ═══════════════════════════════════════════════════════ */
+.bg-img,.bg-img::before{content:'';position:absolute;inset:0;z-index:0}
+.bg-img{
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  pointer-events:none;
+}
+.bg-img::before{/* color tint overlay for text legibility */}
+.bg-wrap{position:relative}
+.bg-wrap > *:not(.bg-img){position:relative;z-index:1}
+
+/* -- image / tint per section -- */
+.bg-hero    .bg-img{background-image:url(background/pexels-shootsaga-35130745.jpg);}
+.bg-hero    .bg-img::before{background:rgba(247,241,227,.62);}
+.bg-ch1     .bg-img{background-image:url(background/pexels-babar-swaleheen-322736848-13943097.jpg);background-position:50% 60%}
+.bg-ch1     .bg-img::before{background:rgba(11,58,30,.58);}
+.bg-ch1b    .bg-img{background-image:url(background/pexels-cafer-sevi-nc-2150308909-34187676.jpg);background-position:50% 35%}
+.bg-ch1b    .bg-img::before{background:rgba(122,90,24,.42);}
+.bg-ch2     .bg-img{background-image:url(background/pexels-mographe-30507036.jpg);background-position:50% 55%}
+.bg-ch2     .bg-img::before{background:rgba(233,244,226,.66);}
+.bg-ch3     .bg-img{background-image:url(background/pexels-mographe-29902012.jpg);background-position:50% 30%}
+.bg-ch3     .bg-img::before{background:rgba(13,53,32,.50);}
+.bg-finale  .bg-img{background-image:url(background/pexels-yu-xin-2154361082-33184411.jpg);background-position:50% 40%}
+.bg-finale  .bg-img::before{background:rgba(0,40,16,.66);}
+
+/* mobile : slightly stronger tint so text stays legible on small screens */
+@media(max-width:780px){
+  .bg-hero   .bg-img::before{background:rgba(247,241,227,.72);}
+  .bg-ch1    .bg-img::before{background:rgba(11,58,30,.66);}
+  .bg-ch1b   .bg-img::before{background:rgba(122,90,24,.52);}
+  .bg-ch2    .bg-img::before{background:rgba(233,244,226,.74);}
+  .bg-ch3    .bg-img::before{background:rgba(13,53,32,.60);}
+  .bg-finale .bg-img::before{background:rgba(0,40,16,.74);}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════ SVG EDGE DEFINITIONS (Layer 3) ═══════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Organic wind-eroded edge pointing down (dark→light transition) -->
+    <clipPath id="edgeDown" clipPathUnits="objectBoundingBox">
+      <path d="M0,0 L1,0 L1,0.55 C0.88,0.72 0.78,0.42 0.65,0.6 C0.5,0.8 0.38,0.45 0.25,0.62 C0.12,0.78 0.05,0.5 0,0.65 Z"/>
+    </clipPath>
+    <clipPath id="edgeDown2" clipPathUnits="objectBoundingBox">
+      <path d="M0,0 L1,0 L1,0.5 C0.9,0.68 0.82,0.5 0.7,0.65 C0.58,0.82 0.45,0.5 0.32,0.68 C0.18,0.85 0.08,0.55 0,0.7 Z"/>
+    </clipPath>
+    <clipPath id="edgeDown3" clipPathUnits="objectBoundingBox">
+      <path d="M0,0 L1,0 L1,0.48 C0.85,0.7 0.72,0.48 0.6,0.62 C0.48,0.78 0.35,0.52 0.22,0.7 C0.1,0.86 0.04,0.58 0,0.72 Z"/>
+    </clipPath>
+    <clipPath id="edgeTop" clipPathUnits="objectBoundingBox">
+      <path d="M0,1 L1,1 L1,0.45 C0.9,0.3 0.8,0.58 0.68,0.42 C0.55,0.25 0.42,0.55 0.3,0.38 C0.18,0.22 0.08,0.5 0,0.35 Z"/>
+    </clipPath>
+  </defs>
+  <defs>
+    <linearGradient id="egGreen" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#388453" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#388453" stop-opacity="1"/>
+      <stop offset="1" stop-color="#388453" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="egGold" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#cf9000" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#cf9000" stop-opacity="1"/>
+      <stop offset="1" stop-color="#cf9000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="egSage" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#e1f4ec" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#e1f4ec" stop-opacity="1"/>
+      <stop offset="1" stop-color="#e1f4ec" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="egDark" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#00461a" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#00461a" stop-opacity="1"/>
+      <stop offset="1" stop-color="#00461a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ═══════ SCROLL PROGRESS ═══════ -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- ═══════ NAVIGATION ═══════ -->
+<nav class="nav" id="nav">
+  <div class="nav-logo">&#60; 民勤治沙 /&#62;</div>
+  <div class="nav-links" id="navLinks">
+    <a href="#chapter1" class="nav-link">民勤在哪里</a>
+    <a href="#chapter2" class="nav-link">荒漠造绿手记</a>
+    <a href="#chapter3" class="nav-link">请到民勤种棵树</a>
+    <a href="#finale" class="nav-link">一棵树的礼物</a>
+    <a href="javascript:void(0)" class="nav-back" onclick="handleBack()">&larr; 返回</a>
+  </div>
+  <div class="nav-toggle" id="navToggle" onclick="toggleMobile()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#chapter1" onclick="toggleMobile()">民勤在哪里</a>
+  <a href="#chapter2" onclick="toggleMobile()">荒漠造绿手记</a>
+  <a href="#chapter3" onclick="toggleMobile()">请到民勤种棵树</a>
+  <a href="#finale" onclick="toggleMobile()">一棵树的礼物</a>
+  <a href="javascript:void(0)" onclick="handleBack();toggleMobile()">返回首页</a>
+</div>
+
+<!-- ═══════ DOT NAV ═══════ -->
+<nav class="dot-nav" id="dotNav">
+  <button class="dot-nav-item active" data-target="hero"><span class="dot-nav-label">顶部</span></button>
+  <button class="dot-nav-item" data-target="chapter1"><span class="dot-nav-label">民勤在哪里</span></button>
+  <button class="dot-nav-item" data-target="chapter2"><span class="dot-nav-label">荒漠造绿手记</span></button>
+  <button class="dot-nav-item" data-target="chapter3"><span class="dot-nav-label">请到民勤种棵树</span></button>
+  <button class="dot-nav-item" data-target="finale"><span class="dot-nav-label">一棵树的礼物</span></button>
+</nav>
+
+<!--
+════════════════════════════════════════════════════════
+HERO
+═══════════════════════════════════════════════════════
+-->
+<section class="hero bg-wrap bg-hero" id="hero">
+  <div class="bg-img"></div>
+  <div class="haze haze-warm"></div>
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div class="ph-wide">
+        <div class="ph-img"><img src="page/1.png" alt="民勤绿洲全景" loading="eager" fetchpriority="high"></div>
+        <div class="ph-caption"><strong>民勤绿洲全景。</strong>被巴丹吉林、腾格里两大沙漠夹击的绿洲孤岛，绿色便是生存的全部底气。</div>
+      </div>
+      <div class="hero-text">
+        <div class="section-label reveal">数据新闻可视化</div>
+        <h1 class="hero-title reveal d1">
+          民勤<br><span class="green">治沙</span>
+        </h1>
+        <p class="hero-sub reveal d2">被巴丹吉林、腾格里两大沙漠夹击的绿洲孤岛。70 年间，森林覆盖率从 3% 攀升至 18.28%，年均沙尘暴天数从 35 天骤降至 1 天。</p>
+      </div>
+    </div>
+    <p class="hero-lead reveal d2">这是几代人在沙海中用手掌、用草方格、用一棵棵梭梭树拼出来的绿色长城 &mdash; 一个关于信念、汗水与重生的数据故事。</p>
+    <div class="hero-scroll reveal d3">SCROLL &darr;</div>
+  </div>
+</section>
+
+<!--
+════════════════════════════════════════════════════════
+CHAPTER 01 — 民勤在哪里
+═══════════════════════════════════════════════════════
+-->
+<div class="chapter-title bg-wrap bg-ch1" id="chapter1" style="background:var(--green-primary);color:#fff">
+  <div class="bg-img"></div>
+  <div class="haze haze-green"></div>
+  <div class="edge-clip edge-green">
+    <svg viewBox="0 0 1000 64" preserveAspectRatio="none"><path class="eg-fill" d="M0,0 L1000,0 L1000,30 C920,48 840,28 760,44 C660,62 580,32 480,50 C380,64 300,34 220,48 C140,58 70,36 0,44 Z"/></svg>
+  </div>
+  <div class="chapter-grid">
+    <div>
+      <div class="section-label reveal" style="color:rgba(255,255,255,0.7)">Chapter 01</div>
+      <h2 class="reveal d1" style="color:#fff">民勤<br>在哪里</h2>
+      <p class="reveal d2" style="color:rgba(255,255,255,0.85);font-size:clamp(.95rem,1.5vw,1.15rem);max-width:500px;line-height:1.65">甘肃武威以北，河西走廊东端。三面环沙，一片孤城。</p>
+      <p class="reveal d2" style="color:rgba(255,255,255,0.55);font-size:.82rem;max-width:480px;line-height:1.7">民勤被巴丹吉林与腾格里两大沙漠合围，绿洲仅占全县面积的 9.66%，却承载了 16.95 万人的生息。</p>
+    </div>
+    <!-- Companion: Locator Map -->
+    <div class="chapter-side reveal d2">
+      <span class="cs-label">沙海定位器</span>
+      <svg class="loc-map" viewBox="0 0 300 280" xmlns="http://www.w3.org/2000/svg">
+        <!-- Distance rings -->
+        <g stroke="rgba(255,255,255,0.12)" stroke-width="1" fill="none" stroke-dasharray="3 4">
+          <circle cx="150" cy="140" r="120"/>
+          <circle cx="150" cy="140" r="80"/>
+          <circle cx="150" cy="140" r="40"/>
+        </g>
+        <!-- Ring labels -->
+        <text x="150" y="22" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" letter-spacing="1">金昌 · 140km</text>
+        <text x="272" y="144" text-anchor="start" fill="rgba(255,255,255,0.4)" font-size="9" letter-spacing="1">兰州 · 300km</text>
+        <text x="150" y="274" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" letter-spacing="1">武威 · 80km</text>
+        <!-- 巴丹吉林 desert (NW) -->
+        <g class="loc-group">
+          <path class="loc-shape" d="M40,60 C70,45 120,50 140,90 C150,110 130,130 110,135 C80,142 50,130 35,105 C22,82 25,68 40,60 Z" fill="rgba(210,180,130,0.3)" stroke="rgba(210,180,130,0.5)" stroke-width="1.2"/>
+          <text x="78" y="100" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="10" font-weight="600">巴丹吉林</text>
+          <text x="78" y="113" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="7.5">4.92万km²</text>
+        </g>
+        <!-- 腾格里 desert (S) -->
+        <g class="loc-group">
+          <path class="loc-shape" d="M155,155 C190,140 250,150 270,185 C285,215 260,240 225,240 C190,240 160,225 150,200 C140,178 142,162 155,155 Z" fill="rgba(210,180,130,0.3)" stroke="rgba(210,180,130,0.5)" stroke-width="1.2"/>
+          <text x="215" y="200" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="10" font-weight="600">腾格里</text>
+          <text x="215" y="213" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="7.5">4.27万km²</text>
+        </g>
+        <!-- Minqin oasis (center, pulsing) -->
+        <g class="loc-group">
+          <circle cx="150" cy="140" r="10" fill="#6fce88" stroke="#fff" stroke-width="1.5" class="loc-pulse"/>
+          <circle cx="150" cy="140" r="5" fill="#fff"/>
+          <text x="150" y="162" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">民勤绿洲</text>
+        </g>
+        <!-- Compass -->
+        <g transform="translate(268,20)">
+          <circle r="16" fill="none" stroke="rgba(255,255,255,0.2)"/>
+          <path d="M0,-13 L3,0 L0,13 L-3,0 Z" fill="rgba(255,255,255,0.5)"/>
+          <text y="-18" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="6">N</text>
+        </g>
+      </svg>
+      <div class="loc-stats">
+        <div class="loc-stat"><b>9.66%</b>绿洲占比</div>
+        <div class="loc-stat"><b>1.58万</b>km² 全县面积</div>
+        <div class="loc-stat"><b>16.95万</b>绿洲人口</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Land Composition — Pie Chart + Interactive Text -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">土地构成</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">九成黄沙，一寸绿洲</h3>
+    <p class="lede reveal d2">民勤县 1.58 万 km² 的土地，被沙漠和绿洲瓜分。点击饼图查看详细解读。</p>
+
+    <!-- Key stats row -->
+    <div class="land-stats reveal d2">
+      <div class="land-stat">
+        <div class="land-stat-num">1.58<span>万 km²</span></div>
+        <div class="land-stat-label">全县总面积</div>
+      </div>
+      <div class="land-stat">
+        <div class="land-stat-num gold">1,527<span>km²</span></div>
+        <div class="land-stat-label">绿洲面积</div>
+      </div>
+      <div class="land-stat">
+        <div class="land-stat-num">16.95<span>万人</span></div>
+        <div class="land-stat-label">绿洲人口</div>
+      </div>
+    </div>
+
+    <!-- comparison bar -->
+    <div class="land-bar-wrap reveal d2">
+      <div class="land-bar">
+        <div class="land-bar-seg desert" style="width:90.34%"><span>荒漠化 90.34%</span></div>
+        <div class="land-bar-seg oasis" style="width:9.66%"><span>绿洲 9.66%</span></div>
+      </div>
+    </div>
+
+    <div class="ic-layout reveal d2">
+      <!-- PIE CHART (smaller) -->
+      <div class="ic-chart land-pie-wrap">
+        <svg viewBox="0 0 200 200" id="landPie">
+          <defs>
+            <filter id="pieGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <!-- Desert 90.34% — large slice -->
+          <path class="ic-clickable" data-id="0" d="M100,100 L100,10 A90,90 0 0,1 189.8,115.3 Z" fill="#cf9000" opacity=".9"/>
+          <!-- Oasis 9.66% — thin slice -->
+          <path class="ic-clickable" data-id="1" d="M100,100 L189.8,115.3 A90,90 0 0,1 100.3,190 Z" fill="#388453"/>
+          <!-- inner circle for donut look -->
+          <circle cx="100" cy="100" r="46" fill="#fff"/>
+          <text x="100" y="96" text-anchor="middle" fill="#282828" font-size="10" font-weight="700" font-family="var(--serif)">1.58万</text>
+          <text x="100" y="110" text-anchor="middle" fill="#808080" font-size="6.5">km&sup2;</text>
+        </svg>
+        <div class="land-pie-legend">
+          <span class="land-legend-item"><span class="land-dot" style="background:#cf9000"></span>荒漠化 90.34%</span>
+          <span class="land-legend-item"><span class="land-dot" style="background:#388453"></span>绿洲 9.66%</span>
+        </div>
+      </div>
+      <!-- SIDE TEXT PANEL (single card — content shows after click) -->
+      <div class="ic-side" id="landSide">
+        <div class="ic-detail-card empty" id="landCard">
+          <div class="empty-icon">&#128270;</div>
+          <div>点击左侧饼图色块，查看详细解读</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Route Map — Interactive Geographic -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">沙漠中的轨迹</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">穿越黄沙一线天</h3>
+    <p class="reveal d2" style="margin-bottom:24px">一条公路，连接起绿洲与外界的全部联系 — 点击途经节点查看详情</p>
+
+    <div class="ic-layout wide reveal d2">
+      <!-- GEOGRAPHIC MAP with coordinate grid + clickable waypoints -->
+      <div class="ic-chart">
+        <svg viewBox="0 0 360 360" id="routeMap">
+          <defs>
+            <radialGradient id="desertG" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#c9e4cf"/>
+              <stop offset="100%" stop-color="#e1f4ec"/>
+            </radialGradient>
+            <radialGradient id="oasisG" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#388453"/>
+              <stop offset="100%" stop-color="#177333"/>
+            </radialGradient>
+            <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+
+          <!-- Background -->
+          <rect width="360" height="360" fill="url(#desertG)" rx="20"/>
+
+          <!-- Coordinate grid (small map feel) -->
+          <g opacity=".25">
+            <line x1="40" y1="80" x2="320" y2="80" stroke="#388453" stroke-width=".4"/>
+            <line x1="40" y1="140" x2="320" y2="140" stroke="#388453" stroke-width=".4"/>
+            <line x1="40" y1="200" x2="320" y2="200" stroke="#388453" stroke-width=".4"/>
+            <line x1="40" y1="260" x2="320" y2="260" stroke="#388453" stroke-width=".4"/>
+            <line x1="100" y1="20" x2="100" y2="340" stroke="#388453" stroke-width=".4"/>
+            <line x1="180" y1="20" x2="180" y2="340" stroke="#388453" stroke-width=".4"/>
+            <line x1="260" y1="20" x2="260" y2="340" stroke="#388453" stroke-width=".4"/>
+          </g>
+
+          <!-- Coordinate labels -->
+          <g fill="#5a8060" font-size="6" font-family="var(--sans)">
+            <text x="40" y="15">N 38.6°</text>
+            <text x="270" y="15">N 38.8°</text>
+            <text x="6" y="84">E 103°</text>
+            <text x="6" y="204">E 103.3°</text>
+            <text x="6" y="320">E 103.6°</text>
+          </g>
+
+          <!-- Small coordinate markers (reference points) -->
+          <g opacity=".5">
+            <circle cx="80" cy="100" r="2" fill="#388453"/>
+            <text x="80" y="94" text-anchor="middle" fill="#388453" font-size="5">红沙岗</text>
+            <circle cx="300" cy="110" r="2" fill="#388453"/>
+            <text x="300" y="104" text-anchor="middle" fill="#388453" font="5">梭梭滩</text>
+            <circle cx="60" cy="240" r="2" fill="#388453"/>
+            <text x="60" y="252" text-anchor="middle" fill="#388453" font-size="5">沙嘴墩</text>
+            <circle cx="310" cy="260" r="2" fill="#388453"/>
+            <text x="310" y="272" text-anchor="middle" fill="#388453" font-size="5">碱滩</text>
+            <circle cx="150" cy="310" r="2" fill="#388453"/>
+            <text x="150" y="322" text-anchor="middle" fill="#388453" font-size="5">武威东</text>
+            <circle cx="240" cy="40" r="2" fill="#388453"/>
+            <text x="240" y="34" text-anchor="middle" fill="#388453" font-size="5">昌灵</text>
+          </g>
+
+          <!-- Desert zones -->
+          <ellipse cx="90" cy="130" rx="80" ry="70" fill="#c9e4cf" opacity=".5"/>
+          <text x="90" y="128" text-anchor="middle" fill="#388453" font-size="10" font-family="var(--serif)" font-weight="700">巴丹吉林</text>
+          <text x="90" y="140" text-anchor="middle" fill="#177333" font-size="7">沙漠</text>
+          <ellipse cx="280" cy="160" rx="80" ry="70" fill="#c9e4cf" opacity=".5"/>
+          <text x="280" y="158" text-anchor="middle" fill="#388453" font-size="10" font-family="var(--serif)" font-weight="700">腾格里</text>
+          <text x="280" y="170" text-anchor="middle" fill="#177333" font-size="7">沙漠</text>
+
+          <!-- Route path (animated) -->
+          <path class="route-path" d="M180,330 C165,295 140,275 125,245 C110,215 120,190 135,170 C150,150 155,125 148,105 C141,85 155,65 180,50" stroke="#cf9000" stroke-width="2.5" fill="none" stroke-linecap="round" filter="url(#glow)"/>
+
+          <!-- Route distance ticks -->
+          <g fill="#5a8060" font-size="6">
+            <text x="152" y="300" transform="rotate(-30,152,300)">60km</text>
+            <text x="118" y="210" transform="rotate(-50,118,210)">42km</text>
+            <text x="140" y="130" transform="rotate(20,140,130)">35km</text>
+          </g>
+
+          <!-- Clickable waypoints along route -->
+          <g class="ic-clickable" data-id="0">
+            <circle class="route-dot" cx="180" cy="330" r="10" fill="#388453" opacity=".9"/>
+            <circle cx="180" cy="330" r="4" fill="#fff"/>
+            <text x="180" y="348" text-anchor="middle" fill="#388453" font-size="7" font-weight="700">武威</text>
+          </g>
+          <g class="ic-clickable" data-id="1">
+            <circle class="route-dot" cx="125" cy="245" r="8" fill="#2f9543" opacity=".9"/>
+            <circle cx="125" cy="245" r="3" fill="#fff"/>
+            <text x="100" y="238" text-anchor="middle" fill="#2f9543" font-size="6.5" font-weight="600">民勤桥</text>
+          </g>
+          <g class="ic-clickable" data-id="2">
+            <circle class="route-dot" cx="135" cy="170" r="8" fill="#2f9543" opacity=".9"/>
+            <circle cx="135" cy="170" r="3" fill="#fff"/>
+            <text x="112" y="163" text-anchor="middle" fill="#2f9543" font-size="6.5" font-weight="600">昌盛</text>
+          </g>
+          <g class="ic-clickable" data-id="3">
+            <circle class="route-dot" cx="148" cy="105" r="8" fill="#2f9543" opacity=".9"/>
+            <circle cx="148" cy="105" r="3" fill="#fff"/>
+            <text x="125" y="98" text-anchor="middle" fill="#2f9543" font-size="6.5" font-weight="600">中渠</text>
+          </g>
+          <g class="ic-clickable" data-id="4">
+            <circle class="route-dot" cx="180" cy="50" r="11" fill="#cf9000"/>
+            <circle cx="180" cy="50" r="4.5" fill="#fff"/>
+            <text x="180" y="35" text-anchor="middle" fill="#cf9000" font-size="8" font-weight="700">民勤绿洲</text>
+            <circle cx="180" cy="50" r="20" fill="url(#oasisG)" opacity=".35"/>
+          </g>
+
+          <!-- Compass rose -->
+          <g transform="translate(320,320)" opacity=".6">
+            <line x1="0" y1="15" x2="0" y2="-15" stroke="#388453" stroke-width=".8"/>
+            <line x1="-12" y1="0" x2="12" y2="0" stroke="#388453" stroke-width=".8"/>
+            <polygon points="0,-15 -3,-5 3,-5" fill="#388453"/>
+            <text x="0" y="-18" text-anchor="middle" fill="#388453" font-size="6" font-weight="700">N</text>
+          </g>
+
+          <!-- Scale bar -->
+          <g transform="translate(40,340)">
+            <line x1="0" y1="0" x2="50" y2="0" stroke="#5a8060" stroke-width="1"/>
+            <line x1="0" y1="-3" x2="0" y2="3" stroke="#5a8060" stroke-width=".8"/>
+            <line x1="50" y1="-3" x2="50" y2="3" stroke="#5a8060" stroke-width=".8"/>
+            <text x="25" y="10" text-anchor="middle" fill="#5a8060" font-size="5">50 km</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- SIDE TEXT PANEL (single card — content shows after click) -->
+      <div class="ic-side" id="routeSide">
+        <div class="ic-detail-card empty" id="routeCard">
+          <div class="empty-icon">&#128506;</div>
+          <div>点击地图上的途经节点，查看详细解读</div>
+        </div>
+        <div class="ph-sm" style="margin-top:0">
+          <div class="ph-img"><img src="page/2.png" alt="沙漠公路航拍" loading="lazy"></div>
+          <div class="ph-caption"><strong>沙漠公路航拍。</strong>公路如黑刃切开沙海，两侧金黄一望无际——这是进出民勤的唯一动脉。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- inline placeholder: 沙漠中的植被 -->
+<div class="wrap">
+  <div class="ph-sm reveal" style="margin-top:0">
+    <div class="ph-img"><img src="page/19.png" alt="沙漠植被恢复实拍" loading="lazy"></div>
+    <div class="ph-caption"><strong>沙漠植被恢复。</strong>梭梭与沙棘重新扎根，沙面渐渐被绿意覆盖，荒漠化扩展的势头终于被遏制。</div>
+  </div>
+</div>
+
+<!-- Sandstorm Geographic Map + Interactive Text -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">风沙灾害</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">沙尘暴天数锐减</h3>
+    <p class="lede reveal d2">从年均 30-37 天到仅 1 天。点击坐标圆点查看逐年变化。</p>
+
+    <div class="ic-layout reveal d2">
+      <!-- GEOGRAPHIC COORDINATE MAP (scatter) -->
+      <div class="ic-chart">
+        <svg viewBox="0 0 280 240" id="sandstormMap">
+          <!-- axes -->
+          <line x1="30" y1="200" x2="270" y2="200" stroke="#808080" stroke-width=".8"/>
+          <line x1="30" y1="200" x2="30" y2="20" stroke="#808080" stroke-width=".8"/>
+          <text x="150" y="220" text-anchor="middle" fill="#808080" font-size="7">年份 &rarr;</text>
+          <text x="12" y="110" text-anchor="middle" fill="#808080" font-size="7" transform="rotate(-90,12,110)">沙尘暴天 &rarr;</text>
+          <!-- grid lines -->
+          <line x1="30" y1="155" x2="270" y2="155" stroke="rgba(0,0,0,0.04)" stroke-width=".5"/>
+          <line x1="30" y1="110" x2="270" y2="110" stroke="rgba(0,0,0,0.04)" stroke-width=".5"/>
+          <line x1="30" y1="65" x2="270" y2="65" stroke="rgba(0,0,0,0.04)" stroke-width=".5"/>
+          <text x="26" y="158" text-anchor="end" fill="#808080" font-size="6">20</text>
+          <text x="26" y="113" text-anchor="end" fill="#808080" font-size="6">25</text>
+          <text x="26" y="68" text-anchor="end" fill="#808080" font-size="6">30</text>
+          <text x="26" y="203" text-anchor="end" fill="#808080" font-size="6">0</text>
+          <!-- Trend area fill -->
+          <path class="draw-area" d="M60,35 L110,45 L160,80 L210,145 L255,198 L255,200 L60,200 Z" fill="rgba(207,144,0,0.08)"/>
+          <!-- Trend line -->
+          <path class="draw-line" d="M60,35 L110,45 L160,80 L210,145 L255,198" stroke="#cf9000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <!-- Data points (clickable) -->
+          <g class="ic-clickable" data-id="0">
+            <circle cx="60" cy="35" r="8" fill="#cf9000" opacity=".9"/>
+            <circle cx="60" cy="35" r="4" fill="#fff"/>
+            <text x="60" y="22" text-anchor="middle" fill="#cf9000" font-size="8" font-weight="700">35</text>
+            <text x="60" y="218" text-anchor="middle" fill="#808080" font-size="6">1950s</text>
+          </g>
+          <g class="ic-clickable" data-id="1">
+            <circle cx="110" cy="45" r="7" fill="#cf9000" opacity=".75"/>
+            <circle cx="110" cy="45" r="3" fill="#fff"/>
+            <text x="110" y="32" text-anchor="middle" fill="#cf9000" font-size="7" font-weight="600">28</text>
+            <text x="110" y="218" text-anchor="middle" fill="#808080" font-size="6">1980s</text>
+          </g>
+          <g class="ic-clickable" data-id="2">
+            <circle cx="160" cy="80" r="6" fill="#cf9000" opacity=".55"/>
+            <circle cx="160" cy="80" r="2.5" fill="#fff"/>
+            <text x="160" y="68" text-anchor="middle" fill="#cf9000" font-size="7" font-weight="600">12</text>
+            <text x="160" y="218" text-anchor="middle" fill="#808080" font-size="6">2000s</text>
+          </g>
+          <g class="ic-clickable" data-id="3">
+            <circle cx="210" cy="145" r="5" fill="#388453" opacity=".7"/>
+            <circle cx="210" cy="145" r="2" fill="#fff"/>
+            <text x="210" y="133" text-anchor="middle" fill="#388453" font-size="7" font-weight="600">3</text>
+            <text x="210" y="218" text-anchor="middle" fill="#808080" font-size="6">2010</text>
+          </g>
+          <g class="ic-clickable" data-id="4">
+            <circle cx="255" cy="198" r="5" fill="#388453"/>
+            <circle cx="255" cy="198" r="2" fill="#fff"/>
+            <text x="255" y="185" text-anchor="middle" fill="#388453" font-size="8" font-weight="700">1</text>
+            <text x="255" y="218" text-anchor="middle" fill="#388453" font-size="6" font-weight="600">2020</text>
+          </g>
+        </svg>
+      </div>
+      <!-- SIDE TEXT PANEL -->
+      <div class="ic-side" id="sandstormSide">
+        <div class="ic-detail-card empty" id="sandstormCard">
+          <div class="empty-icon">&#128270;</div>
+          <div>点击左侧坐标圆点，查看详细解读</div>
+        </div>
+        <div class="ph-sm" style="margin-top:0">
+          <div class="ph-img"><img src="page/3.png" alt="沙尘暴实拍" loading="lazy"></div>
+          <div class="ph-caption"><strong>沙尘暴实拍。</strong>遮天蔽日的沙墙滚滚而来，是民勤人最熟悉的噩梦——也是治沙的起点。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- inline placeholder: 治沙英雄人物 -->
+<div class="wrap">
+  <div class="ph-sm reveal" style="margin-top:0">
+    <div class="ph-img"><img src="page/4.png" alt="治沙英雄人物肖像组图" loading="lazy"></div>
+    <div class="ph-caption"><strong>治沙英雄人物肖像。</strong>从白发老农到返乡青年，一代又一代民勤人用双手在沙海中为后人争出一片绿。</div>
+  </div>
+</div>
+
+<!-- Footprint Animation -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="fp-section">
+      <div class="section-label reveal">时间刻度</div>
+      <h3 class="reveal d1" style="margin-bottom:8px">2 分 49 秒</h3>
+      <p class="lede reveal d2">一个脚印的一生 &mdash; 风沙只需不到 3 分钟就能抹平一切痕迹。</p>
+
+      <!-- stats row -->
+      <div class="fp-stats reveal d2">
+        <div class="fp-stat">
+          <div class="fp-stat-num">2:49</div>
+          <div class="fp-stat-label">脚印消失时间</div>
+        </div>
+        <div class="fp-stat">
+          <div class="fp-stat-num">6<span>m/s</span></div>
+          <div class="fp-stat-label">年起沙风速</div>
+        </div>
+        <div class="fp-stat">
+          <div class="fp-stat-num">30<span>+天</span></div>
+          <div class="fp-stat-label">年均沙尘暴天数（治理前）</div>
+        </div>
+        <div class="fp-stat">
+          <div class="fp-stat-num green">1<span>天</span></div>
+          <div class="fp-stat-label">年均沙尘暴天数（如今）</div>
+        </div>
+      </div>
+
+      <!-- main area: video + fact cards -->
+      <div class="fp-layout reveal d2">
+        <div class="fp-media">
+          <div class="fp-stage fp-video" id="fpStage">
+            <video id="fpVideo" playsinline muted loop preload="metadata" poster="">
+              <source src="page/1.mp4" type="video/mp4">
+            </video>
+            <div class="fp-video-fallback">
+              <div style="font-size:2rem">👣</div>
+              <div>脚印被沙淹没 · 2:49</div>
+            </div>
+          </div>
+          <button class="fp-restart" id="fpRestart" onclick="restartFootprint()">&#8635; 重播</button>
+        </div>
+        <div class="fp-cards">
+          <div class="fp-card">
+            <div class="fp-card-icon">💨</div>
+            <div class="fp-card-body">
+              <strong>风沙的速度</strong>
+              <p>民勤年均风速达 6 m/s 以上，大风一起，流沙如浪潮般向前推进，所到之处庄稼被连根拔起。</p>
+            </div>
+          </div>
+          <div class="fp-card">
+            <div class="fp-card-icon">🌪️</div>
+            <div class="fp-card-body">
+              <strong>沙尘暴的威力</strong>
+              <p>治理前，民勤年均沙尘暴天数高达 30&ndash;37 天。天昏地暗、飞沙走石，出门便是生死考验。</p>
+            </div>
+          </div>
+          <div class="fp-card">
+            <div class="fp-card-icon">🌱</div>
+            <div class="fp-card-body">
+              <strong>一棵草的接力</strong>
+              <p>正是这 2 分 49 秒，让民勤人下定决心：扎下草方格、种上梭梭林，用一代代人的双手把风沙挡住。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Vanishing Villages -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">消失的村庄</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">家园被黄沙吞没</h3>
+    <p class="lede reveal d2">40 年间，绿洲面积缩减 18%。村庄被掩埋、村民被迫背井离乡。点击数字查看详情。</p>
+    <div class="ph-split reveal d2">
+      <div class="ph-sm" style="cursor:pointer" onclick="this.classList.toggle('expanded')">
+        <div class="ph-img"><img src="page/5.png" alt="消失村庄历史照片" loading="lazy"></div>
+        <div class="ph-caption"><strong>消失村庄历史照片。</strong>流沙掩埋了房屋与农田，只剩几截土墙在风中诉说。</div>
+      </div>
+      <div class="ph-sm">
+        <div class="ph-img"><img src="page/6.png" alt="生态移民安置点今昔对比" loading="lazy"></div>
+        <div class="ph-caption"><strong>生态移民安置点。</strong>从沙区深处迁入新居，自来水与绿荫取代了风沙与干渴。</div>
+      </div>
+    </div>
+    <div class="stats-grid reveal d3" id="vanishGrid">
+      <div class="stat-card" data-s="a">
+        <div class="stat-num gold-num" data-count="305">0</div>
+        <div class="stat-label">个村庄被沙埋</div>
+      </div>
+      <div class="stat-card" data-s="b">
+        <div class="stat-num" data-count="600">0</div>
+        <div class="stat-label">+ 个村庄被毁</div>
+      </div>
+      <div class="stat-card" data-s="c">
+        <div class="stat-num" data-count="7000">0</div>
+        <div class="stat-label">余户生态移民外迁</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Parallax Band 1 — 荒漠化占比 -->
+<div class="parallax-band bg-wrap bg-ch1b" id="parallax1">
+  <div class="bg-img"></div>
+  <div class="pb-grid">
+    <div class="reveal">
+      <div class="big-stat" data-count="90.34" data-decimal="2">0</div>
+      <div class="big-stat-label reveal d1">民勤县荒漠化面积占比 %</div>
+    </div>
+    <div class="reveal d2">
+      <div class="split-bar">
+        <div class="split-seg sand">
+          <span class="seg-label">沙漠 90.34%</span>
+          <span class="seg-detail">腾格里 + 巴丹吉林 4.92万 + 4.27万 km²</span>
+        </div>
+        <div class="split-seg green">
+          <span class="seg-label">绿洲 9.66%</span>
+          <span class="seg-detail">1,527 km² · 承载 16.95 万人</span>
+        </div>
+      </div>
+      <div class="split-fig">
+        <span><b>1.58万</b>km² 全县面积</span>
+        <span><b>1,527</b>km² 绿洲面积</span>
+        <span><b>16.95万</b>绿洲人口</span>
+      </div>
+    </div>
+  </div>
+  <p class="pb-caption reveal d2">90.34% 是沙漠，9.66% 是绿洲。民勤人就是在这一寸绿意上，建起了自己的家。</p>
+  <div class="edge-clip edge-green">
+    <svg viewBox="0 0 1000 64" preserveAspectRatio="none"><path class="eg-fill" d="M0,0 L1000,0 L1000,30 C920,52 840,28 760,46 C660,64 580,32 480,50 C380,66 300,34 220,48 C140,60 70,36 0,44 Z"/></svg>
+  </div>
+</div>
+
+<!--
+════════════════════════════════════════════════════════
+CHAPTER 02 — 荒漠造绿手记
+═══════════════════════════════════════════════════════
+-->
+<div class="chapter-title bg-wrap bg-ch2" id="chapter2" style="background:var(--green-pale);color:var(--text)">
+  <div class="bg-img"></div>
+  <div class="chapter-grid">
+    <div>
+      <div class="section-label reveal">Chapter 02</div>
+      <h2 class="reveal d1" style="color:var(--green-dark)">荒漠<br>造绿手记</h2>
+      <p class="reveal d2" style="font-size:clamp(.95rem,1.5vw,1.15rem);max-width:500px;line-height:1.65;color:var(--text)">村民的双手 + 政府的支持下，70 年治沙接力，从一棵草到一片林。</p>
+      <p class="reveal d2" style="font-size:.82rem;max-width:480px;line-height:1.7;color:var(--text-muted)">这是一场没有终点的事业：每一代人扎下草方格，都是在替后人多争一寸绿洲。</p>
+    </div>
+    <!-- Companion: Sand Control Arsenal -->
+    <div class="chapter-side light reveal d2">
+      <span class="cs-label">治沙武器库</span>
+      <div class="arsenal" id="arsenalList">
+        <div class="arsenal-item open" data-arsenal="0">
+          <div class="arsenal-ic">▦</div><div class="arsenal-name">草方格沙障</div>
+          <div class="arsenal-body">麦草扎入沙中，形成 1×1 米方格，削弱风蚀、保水固沙。这是民勤最经典、最广泛的治沙手段，几代人接力，用双手在沙海中织出绿色网格。</div>
+        </div>
+        <div class="arsenal-item" data-arsenal="1">
+          <div class="arsenal-ic">▣</div><div class="arsenal-name">新材料沙障</div>
+          <div class="arsenal-body">以可降解合成纤维替代传统麦草，使用寿命从 3 年延长至 8 年以上，大幅减少补扎频次，已在民勤大规模推广。</div>
+        </div>
+        <div class="arsenal-item" data-arsenal="2">
+          <div class="arsenal-ic">⚙</div><div class="arsenal-name">机械压沙</div>
+          <div class="arsenal-body">拖拉机牵引压沙机在流动沙丘上快速铺设沙障，一台机器每日可完成 30 亩，相当于 60 个手工劳动力的工作量。</div>
+        </div>
+        <div class="arsenal-item" data-arsenal="3">
+          <div class="arsenal-ic">≋</div><div class="arsenal-name">石羊河调水</div>
+          <div class="arsenal-body">通过景电二期延伸工程跨流域调水，石羊河下游年供水量从 0.1 亿 m³ 跃升至 2.6 亿 m³，结束了地下水超采的历史。</div>
+        </div>
+        <div class="arsenal-item" data-arsenal="4">
+          <div class="arsenal-ic">◎</div><div class="arsenal-name">补水青土湖</div>
+          <div class="arsenal-body">持续生态补水让 1959 年干涸的青土湖重现水面，2023 年水域面积达 26.7 km²，候鸟回归、芦苇重生。</div>
+        </div>
+        <div class="arsenal-item" data-arsenal="5">
+          <div class="arsenal-ic">❋</div><div class="arsenal-name">生物结皮</div>
+          <div class="arsenal-body">利用蓝藻、苔藓等微生物在沙地表层形成生物结皮，自然固定流沙，被誉为"看不见的绿毯"，是生态修复的前沿技术。</div>
+        </div>
+        <div class="arsenal-item" data-arsenal="6">
+          <div class="arsenal-ic">✦</div><div class="arsenal-name">蚂蚁森林</div>
+          <div class="arsenal-body">蚂蚁森林在民勤上线梭梭、红柳等治沙树种，网友线上认领、线下专业队栽种，让治沙触达数亿互联网用户。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="stats-grid" id="chapter2Grid">
+      <div class="stat-card" data-s="a">
+        <div class="stat-num" data-count="380">0</div>
+        <div class="stat-label">公里 林草防护带</div>
+      </div>
+      <div class="stat-card" data-s="b">
+        <div class="stat-num" data-count="130">0</div>
+        <div class="stat-label">万亩 工程治沙</div>
+      </div>
+      <div class="stat-card" data-s="c">
+        <div class="stat-num" data-count="325">0</div>
+        <div class="stat-label">万亩 封育管护</div>
+      </div>
+      <div class="stat-card" data-s="d">
+        <div class="stat-num" data-count="261">0</div>
+        <div class="stat-label">万亩 人工造林</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Clickable expandable sections -->
+<div class="wrap">
+  <div class="section">
+    <div class="section-label reveal">双手与政策</div>
+    <h3 class="reveal d1" style="margin-bottom:24px">村民行动 &times; 政府支持<br>两股力量共筑绿长城</h3>
+
+    <div class="duo">
+      <!-- LEFT: 村民 (gold) -->
+      <div class="duo-col duo-villagers">
+        <div class="duo-head">
+          <div class="duo-icon" style="color:var(--gold)">&#9679;</div>
+          <div>
+            <div class="duo-title">村民们的举措</div>
+            <div class="duo-sub">六代民勤人的自发治沙</div>
+          </div>
+        </div>
+        <div class="duo-stats">
+          <div class="duo-stat"><div class="duo-stat-num">6</div><div class="duo-stat-label">代接力</div></div>
+          <div class="duo-stat"><div class="duo-stat-num">5万+</div><div class="duo-stat-label">志愿人次</div></div>
+          <div class="duo-stat"><div class="duo-stat-num">20+</div><div class="duo-stat-label">治沙合作社</div></div>
+        </div>
+        <div class="duo-body">
+          <p>在民勤，治沙不是口号，而是几代人流血流汗的日常。从 1950 年代第一批民兵林场开始，民勤人就学会了在沙漠边缘种树。家家户户扎草方格，用麦草秸秆锁住流动的沙丘 &mdash; 这是祖辈传下来的手艺。</p>
+          <p>进入 21 世纪，年轻人摸索出梭梭接种肉苁蓉的路子，一棵梭梭树下能收获价值千元的肉苁蓉，治沙与增收从此不再矛盾。合作社治沙、返乡种树、互联网认领蚂蚁森林 &mdash; 每一个新尝试，都在拓宽治沙的边界。</p>
+        </div>
+      </div>
+
+      <!-- RIGHT: 政府 (green) -->
+      <div class="duo-col duo-gov">
+        <div class="duo-head">
+          <div class="duo-icon" style="color:var(--green-primary)">&#9679;</div>
+          <div>
+            <div class="duo-title">政府机构的支持</div>
+            <div class="duo-sub">从三北防护林到石羊河治理</div>
+          </div>
+        </div>
+        <div class="duo-stats">
+          <div class="duo-stat"><div class="duo-stat-num">50亿+</div><div class="duo-stat-label">治沙专项资金</div></div>
+          <div class="duo-stat"><div class="duo-stat-num">2.6亿</div><div class="duo-stat-label">m&sup3; 年供水</div></div>
+          <div class="duo-stat"><div class="duo-stat-num">70</div><div class="duo-stat-label">年持续投入</div></div>
+        </div>
+        <div class="duo-body">
+          <p>没有政府主导的工程与资金投入，民勤的故事不会走到今天。1950 年首个治沙民兵林场获政府批复建立；1981 年三北防护林工程启动，民勤被国家列为重点建设区域，数十年来累计投入中央和省级治沙专项资金超过 50 亿元。</p>
+          <p>2007 年是转折点 &mdash; 石羊河流域重点治理规划获批，关井压田、跨流域调水、生态移民，一系列铁腕举措让下游年供水从 0.1 亿 m&sup3; 跃升至 2.6 亿 m&sup3;。2017 年社会化治沙启动，蚂蚁森林等互联网项目落地民勤。</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- inline placeholder: 村民劳作场景 -->
+<div class="wrap">
+  <div class="ph-sm reveal" style="margin-top:0">
+    <div class="ph-img"><img src="page/7.png" alt="村民扎草方格劳作实拍" loading="lazy"></div>
+    <div class="ph-caption"><strong>村民扎草方格。</strong>将麦草压入沙中，织成一张张"沙网"，锁住流动的沙丘。</div>
+  </div>
+</div>
+
+<!-- Oasis Comparison -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">绿洲变迁</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">治与不治，天壤之别</h3>
+    <p class="reveal d2" style="margin-bottom:20px">拖动滑块，同一片土地四十年前后的大变样。</p>
+
+    <!-- Before/After Slider -->
+    <div class="ba-slider reveal d2" id="baSlider">
+      <div class="ba-before" id="baBefore">
+        <div class="ba-face-img"><img src="page/9.png" alt="治理前·荒漠" loading="lazy"></div>
+        <span class="ba-tag ba-tag-before">治理前</span>
+      </div>
+      <div class="ba-after" id="baAfter">
+        <div class="ba-face-img"><img src="page/8.png" alt="治理后·绿洲" loading="lazy"></div>
+        <span class="ba-tag ba-tag-after">治理后</span>
+      </div>
+      <div class="ba-handle" id="baHandle">
+        <div class="ba-handle-line"></div>
+        <div class="ba-handle-btn">&#8249;&#8250;</div>
+      </div>
+      <input type="range" class="ba-range" id="baRange" min="0" max="100" value="50" aria-label="对比滑块">
+    </div>
+
+    <div class="ba-caption">
+      <span><b>1980 年代</b>沙漠进逼，绿洲退缩</span>
+      <span><b>2020 年代</b>林带合围，绿进沙退</span>
+    </div>
+  </div>
+</div>
+
+<!-- inline placeholder: 民勤县城全景 -->
+<div class="wrap">
+  <div class="ph-sm reveal" style="margin-top:0">
+    <div class="ph-img"><img src="page/10.png" alt="民勤县城绿洲全景" loading="lazy"></div>
+    <div class="ph-caption"><strong>民勤县城绿洲全景。</strong>绿洲如翡翠镶嵌在沙海之中，水系与林带环绕着城镇与农田。</div>
+  </div>
+</div>
+
+<!-- Coverage Line Chart — Interactive -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">森林覆盖率</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">从 3% 到 18.28%</h3>
+    <p class="lede reveal d2">七十年绿色长征的答卷。点击折线节点查看详情。</p>
+
+    <div class="ic-layout reveal d2">
+      <div class="ic-chart" style="position:relative">
+        <svg viewBox="0 0 520 260" id="coverageChart">
+          <line x1="50" y1="20" x2="50" y2="220" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+          <line x1="50" y1="220" x2="480" y2="220" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+          <line x1="50" y1="20" x2="480" y2="20" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="50" y1="74" x2="480" y2="74" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="50" y1="128" x2="480" y2="128" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="50" y1="182" x2="480" y2="182" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <text x="42" y="24" text-anchor="end" fill="#808080" font-size="9">20</text>
+          <text x="42" y="78" text-anchor="end" fill="#808080" font-size="9">15</text>
+          <text x="42" y="132" text-anchor="end" fill="#808080" font-size="9">10</text>
+          <text x="42" y="186" text-anchor="end" fill="#808080" font-size="9">5</text>
+          <text x="42" y="224" text-anchor="end" fill="#808080" font-size="9">0</text>
+          <defs>
+            <linearGradient id="covGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#388453"/>
+              <stop offset="100%" stop-color="transparent"/>
+            </linearGradient>
+          </defs>
+          <path class="draw-area" d="M90 207 L170 190 L250 137 L330 71 L430 58 L430 220 L90 220 Z" fill="url(#covGrad)" opacity=".3"/>
+          <path class="draw-line" d="M90 207 L170 190 L250 137 L330 71 L430 58" stroke="#388453" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <g class="ic-clickable" data-id="0"><circle cx="90" cy="207" r="7" fill="#388453"/></g>
+          <text x="90" y="238" text-anchor="middle" fill="#808080" font-size="9">1950</text>
+          <text x="90" y="198" text-anchor="middle" fill="#282828" font-size="9" font-weight="600">3%</text>
+          <g class="ic-clickable" data-id="1"><circle cx="170" cy="190" r="7" fill="#388453"/></g>
+          <text x="170" y="238" text-anchor="middle" fill="#808080" font-size="9">1980</text>
+          <text x="170" y="181" text-anchor="middle" fill="#282828" font-size="9" font-weight="600">4.8%</text>
+          <g class="ic-clickable" data-id="2"><circle cx="250" cy="137" r="7" fill="#388453"/></g>
+          <text x="250" y="238" text-anchor="middle" fill="#808080" font-size="9">2000</text>
+          <text x="250" y="128" text-anchor="middle" fill="#282828" font-size="9" font-weight="600">12.08%</text>
+          <g class="ic-clickable" data-id="3"><circle cx="330" cy="71" r="7" fill="#388453"/></g>
+          <text x="330" y="238" text-anchor="middle" fill="#808080" font-size="9">2010</text>
+          <text x="330" y="62" text-anchor="middle" fill="#282828" font-size="9" font-weight="600">17.91%</text>
+          <g class="ic-clickable" data-id="4"><circle cx="430" cy="58" r="8" fill="#388453"/></g>
+          <text x="430" y="238" text-anchor="middle" fill="#808080" font-size="9">2023</text>
+          <text x="430" y="49" text-anchor="middle" fill="#388453" font-size="11" font-weight="700">18.28%</text>
+        </svg>
+        <!-- inline popup pinned to SVG coords -->
+        <div class="chart-popup" id="coveragePopup"></div>
+      </div>
+      <!-- side panel: info on top, image placeholder below -->
+      <div class="ic-side" id="coverageSide">
+        <div class="ic-detail-card empty" id="coverageCard">
+          <div class="empty-icon">&#128270;</div>
+          <div>点击折线图上的节点，查看详细解读</div>
+        </div>
+        <div class="ph-sm" style="margin-top:0">
+          <div class="ph-img"><img src="page/11.png" alt="森林覆盖率实拍" loading="lazy"></div>
+          <div class="ph-caption"><strong>森林覆盖率实拍。</strong>连片梭梭林向天际延伸，森林覆盖率从 3% 跃升至 18.28%。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rain Chart (bar) — Interactive -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">雨水回来了</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">降水与湿度双升</h3>
+    <p class="lede reveal d2">生态改善带来局地小气候转好。点击柱形查看逐年解读。</p>
+
+    <div class="ic-layout reveal d2">
+      <div class="ic-chart" style="position:relative">
+        <svg viewBox="0 0 480 230" id="rainChart">
+          <line x1="40" y1="20" x2="40" y2="195" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+          <line x1="40" y1="195" x2="450" y2="195" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+          <line x1="40" y1="20" x2="450" y2="20" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="40" y1="78" x2="450" y2="78" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="40" y1="136" x2="450" y2="136" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <text x="32" y="24" text-anchor="end" fill="#808080" font-size="8">200</text>
+          <text x="32" y="82" text-anchor="end" fill="#808080" font-size="8">150</text>
+          <text x="32" y="140" text-anchor="end" fill="#808080" font-size="8">100</text>
+          <text x="32" y="199" text-anchor="end" fill="#808080" font-size="8">0</text>
+          <g class="ic-clickable bar-col" data-id="0">
+            <rect class="draw-area-grow" x="75" y="155" width="44" height="40" rx="3" fill="#388453" opacity=".5" style="transform-origin:75px 195px"/>
+            <text x="97" y="148" text-anchor="middle" fill="#388453" font-size="9" font-weight="600">103</text>
+            <text x="97" y="212" text-anchor="middle" fill="#808080" font-size="8">2000</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="1">
+            <rect class="draw-area-grow" x="150" y="124" width="44" height="71" rx="3" fill="#388453" opacity=".65" style="transform-origin:150px 195px"/>
+            <text x="172" y="117" text-anchor="middle" fill="#388453" font-size="9" font-weight="600">137</text>
+            <text x="172" y="212" text-anchor="middle" fill="#808080" font-size="8">2010</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="2">
+            <rect class="draw-area-grow" x="225" y="98" width="44" height="97" rx="3" fill="#2f9543" style="transform-origin:225px 195px"/>
+            <text x="247" y="91" text-anchor="middle" fill="#2f9543" font-size="9" font-weight="600">168</text>
+            <text x="247" y="212" text-anchor="middle" fill="#808080" font-size="8">2020</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="3">
+            <rect class="draw-area-grow" x="300" y="115" width="44" height="80" rx="3" fill="#177333" opacity=".7" style="transform-origin:300px 195px"/>
+            <text x="322" y="108" text-anchor="middle" fill="#177333" font-size="9" font-weight="600">149</text>
+            <text x="322" y="212" text-anchor="middle" fill="#808080" font-size="8">2024</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="4">
+            <rect class="draw-area-grow" x="375" y="142" width="44" height="53" rx="3" fill="#006f27" opacity=".5" style="transform-origin:375px 195px"/>
+            <text x="397" y="135" text-anchor="middle" fill="#006f27" font-size="9" font-weight="600">118</text>
+            <text x="397" y="212" text-anchor="middle" fill="#808080" font-size="8">2025</text>
+          </g>
+        </svg>
+      </div>
+      <div class="ic-side" id="rainSide">
+        <div class="ic-detail-card empty" id="rainCard">
+          <div class="empty-icon">&#128270;</div>
+          <div>点击柱形图查看详细解读</div>
+        </div>
+        <div class="ph-sm" style="margin-top:0">
+          <div class="ph-img"><img src="page/12.png" alt="雨水与青土湖对比" loading="lazy"></div>
+          <div class="ph-caption"><strong>雨水与青土湖对比。</strong>断流几十年的青土湖重焕碧波，局地降水与湿度双双回升。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 点击展开：治沙六件套 -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">治沙六件套</div>
+    <h3 class="reveal d1" style="margin-bottom:24px">六项核心技术构筑绿色长城</h3>
+
+    <div class="expandable-block reveal d2" id="block-tech">
+      <button class="expand-toggle" onclick="toggleBlock('block-tech')">
+        <div class="expand-toggle-icon">&#9632;</div>
+        <div class="expand-toggle-text">
+          <h3>点击展开 &mdash; 六种治沙技法详解</h3>
+          <p>草方格 &middot; 新材料 &middot; 机械压沙 &middot; 石羊河调水 &middot; 补水青土湖 &middot; 生物结皮</p>
+        </div>
+      </button>
+      <div class="expand-content">
+        <div class="expand-content-inner">
+          <div class="cards-grid" style="margin-top:8px">
+            <div class="card" style="padding:20px">
+              <div class="card-icon" style="width:40px;height:40px;font-size:1rem">&#9632;</div>
+              <div class="card-title" style="font-size:.95rem">草方格沙障</div>
+              <div class="card-desc" style="font-size:.78rem">麦草秸秆扎设 1x1m 方格，降低风速、截留水分，最经典的固沙手段</div>
+            </div>
+            <div class="card" style="padding:20px">
+              <div class="card-icon" style="width:40px;height:40px;font-size:1rem">&#9670;</div>
+              <div class="card-title" style="font-size:.95rem">新材料固沙</div>
+              <div class="card-desc" style="font-size:.78rem">新型聚合物固沙剂喷洒沙面，形成强度高、透水好的固结层</div>
+            </div>
+            <div class="card" style="padding:20px">
+              <div class="card-icon" style="width:40px;height:40px;font-size:1rem">&#9672;</div>
+              <div class="card-title" style="font-size:.95rem">机械压沙</div>
+              <div class="card-desc" style="font-size:.78rem">推土机、压沙机联合作业，效率比人工提高 20 倍以上</div>
+            </div>
+            <div class="card" style="padding:20px">
+              <div class="card-icon" style="width:40px;height:40px;font-size:1rem">&#9673;</div>
+              <div class="card-title" style="font-size:.95rem">石羊河调水</div>
+              <div class="card-desc" style="font-size:.78rem">流域水资源统一调度，下游年供水从 0.1 亿增至 2.6 亿 m&sup3;</div>
+            </div>
+            <div class="card" style="padding:20px">
+              <div class="card-icon" style="width:40px;height:40px;font-size:1rem">&#9675;</div>
+              <div class="card-title" style="font-size:.95rem">补水青土湖</div>
+              <div class="card-desc" style="font-size:.78rem">累计补水 3 亿多 m&sup3;，形成 26.7 km&sup2; 湿地，候鸟回归</div>
+            </div>
+            <div class="card" style="padding:20px">
+              <div class="card-icon" style="width:40px;height:40px;font-size:1rem">&#9679;</div>
+              <div class="card-title" style="font-size:.95rem">生物结皮</div>
+              <div class="card-desc" style="font-size:.78rem">培育蓝藻、苔藓等生物结皮，自然修复、长效固沙</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline with interactive path diagram -->
+<div class="wrap">
+  <div class="section">
+    <div class="section-label reveal">治理时间线</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">治沙简史</h3>
+    <p class="lede reveal d2">七十年接续奋斗，四个阶段、八段里程碑。点击左侧节点，右侧路径图高亮对应位置。</p>
+
+    <div class="tl-layout reveal d3">
+      <!-- LEFT: clickable timeline list -->
+      <div class="tl-list" id="tlList">
+        <div class="tl-item" data-tl="0" onclick="activateTl(0)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">1950</div>
+            <div class="tl-text">第一批防沙治沙民兵林场建立，群众性治沙运动开始</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="1" onclick="activateTl(1)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">1952</div>
+            <div class="tl-text">民勤县治沙委员会成立，红崖山林场建立</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="2" onclick="activateTl(2)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">1981</div>
+            <div class="tl-text">三北防护林工程启动，民勤列入重点建设区域</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="3" onclick="activateTl(3)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">2007</div>
+            <div class="tl-text">石羊河流域重点治理规划获批</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="4" onclick="activateTl(4)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">2009</div>
+            <div class="tl-text">青土湖首次重现水域，干涸 51 年后复流</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="5" onclick="activateTl(5)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">2017</div>
+            <div class="tl-text">社会化治沙启动，蚂蚁森林等项目落地民勤</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="6" onclick="activateTl(6)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">2020</div>
+            <div class="tl-text">森林覆盖率突破 18%，荒漠化趋势根本扭转</div>
+          </div>
+        </div>
+        <div class="tl-item" data-tl="7" onclick="activateTl(7)">
+          <div class="tl-dot"></div>
+          <div class="tl-content">
+            <div class="tl-year">2025</div>
+            <div class="tl-text">十个勤天带动全民种树，文旅融合绿色经济腾飞</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: path diagram + detail card -->
+      <div class="tl-right">
+        <div class="tl-chart">
+          <svg viewBox="0 0 320 520" id="tlPath">
+            <defs>
+              <linearGradient id="tlGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#388453"/>
+                <stop offset="100%" stop-color="#cf9000"/>
+              </linearGradient>
+              <filter id="tlGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <!-- Background -->
+            <rect width="320" height="520" rx="16" fill="#f8faf9"/>
+            <!-- Phase labels -->
+            <g font-size="8" fill="#808080" font-family="var(--sans)">
+              <text x="20" y="30" font-weight="600" fill="#388453" font-size="9">第一阶段 · 群众治沙</text>
+              <text x="20" y="148" font-weight="600" fill="#388453" font-size="9">第二阶段 · 国家战略</text>
+              <text x="20" y="266" font-weight="600" fill="#388453" font-size="9">第三阶段 · 流域治理</text>
+              <text x="20" y="414" font-weight="600" fill="#388453" font-size="9">第四阶段 · 全民治沙</text>
+            </g>
+            <!-- Connecting path (S-curve) -->
+            <path id="tlPathLine" d="M160,55 C230,75 230,105 160,125 C90,145 90,175 160,195 C230,215 230,245 160,265 C90,285 90,315 160,335 C230,355 230,395 160,415 C90,435 90,475 160,495"
+              stroke="url(#tlGrad)" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".35"/>
+            <!-- Animated overlay path -->
+            <path id="tlPathActive" d="M160,55 C230,75 230,105 160,125 C90,145 90,175 160,195 C230,215 230,245 160,265 C90,285 90,315 160,335 C230,355 230,395 160,415 C90,435 90,475 160,495"
+              stroke="url(#tlGrad)" stroke-width="3" fill="none" stroke-linecap="round" stroke-dasharray="600" stroke-dashoffset="600" filter="url(#tlGlow)"/>
+            <!-- Nodes (positioned along the curve) -->
+            <g class="tl-node" data-tl="0" onclick="activateTl(0)">
+              <circle cx="160" cy="55" r="14" fill="#fff" stroke="#388453" stroke-width="2.5"/>
+              <circle cx="160" cy="55" r="5" fill="#388453"/>
+              <text x="160" y="80" text-anchor="middle" fill="#282828" font-size="9" font-weight="700">1950</text>
+            </g>
+            <g class="tl-node" data-tl="1" onclick="activateTl(1)">
+              <circle cx="160" cy="125" r="12" fill="#fff" stroke="#388453" stroke-width="2"/>
+              <circle cx="160" cy="125" r="4" fill="#388453"/>
+              <text x="160" y="150" text-anchor="middle" fill="#282828" font-size="9" font-weight="700">1952</text>
+            </g>
+            <g class="tl-node" data-tl="2" onclick="activateTl(2)">
+              <circle cx="160" cy="195" r="12" fill="#fff" stroke="#388453" stroke-width="2"/>
+              <circle cx="160" cy="195" r="4" fill="#388453"/>
+              <text x="160" y="220" text-anchor="middle" fill="#282828" font-size="9" font-weight="700">1981</text>
+            </g>
+            <g class="tl-node" data-tl="3" onclick="activateTl(3)">
+              <circle cx="160" cy="265" r="12" fill="#fff" stroke="#388453" stroke-width="2"/>
+              <circle cx="160" cy="265" r="4" fill="#388453"/>
+              <text x="160" y="290" text-anchor="middle" fill="#282828" font-size="9" font-weight="700">2007</text>
+            </g>
+            <g class="tl-node" data-tl="4" onclick="activateTl(4)">
+              <circle cx="160" cy="335" r="12" fill="#fff" stroke="#cf9000" stroke-width="2"/>
+              <circle cx="160" cy="335" r="4" fill="#cf9000"/>
+              <text x="160" y="360" text-anchor="middle" fill="#cf9000" font-size="9" font-weight="700">2009</text>
+            </g>
+            <g class="tl-node" data-tl="5" onclick="activateTl(5)">
+              <circle cx="160" cy="415" r="12" fill="#fff" stroke="#cf9000" stroke-width="2"/>
+              <circle cx="160" cy="415" r="4" fill="#cf9000"/>
+              <text x="160" y="440" text-anchor="middle" fill="#cf9000" font-size="9" font-weight="700">2017</text>
+            </g>
+            <g class="tl-node" data-tl="6" onclick="activateTl(6)">
+              <circle cx="160" cy="455" r="12" fill="#fff" stroke="#cf9000" stroke-width="2"/>
+              <circle cx="160" cy="455" r="4" fill="#cf9000"/>
+              <text x="160" y="478" text-anchor="middle" fill="#cf9000" font-size="9" font-weight="700">2020</text>
+            </g>
+            <g class="tl-node" data-tl="7" onclick="activateTl(7)">
+              <circle cx="160" cy="495" r="14" fill="#cf9000" stroke="#cf9000" stroke-width="2.5"/>
+              <circle cx="160" cy="495" r="5" fill="#fff"/>
+              <text x="160" y="516" text-anchor="middle" fill="#cf9000" font-size="9" font-weight="700">2025</text>
+            </g>
+          </svg>
+        </div>
+        <div class="tl-detail-card empty" id="tlDetailCard">
+          <div class="empty-icon">&#128270;</div>
+          <div>点击左侧时间节点或右侧路径图，查看详细解读</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Parallax Band 2 — 森林覆盖率变迁 -->
+<div class="parallax-band light-band" id="parallax2">
+  <div class="pb-grid">
+    <div class="reveal">
+      <div class="big-stat" style="color:var(--green-dark)">3% &rarr; 18.28%</div>
+      <div class="big-stat-label reveal d1">七十年森林覆盖率变迁</div>
+      <p class="pb-caption desktop-only reveal d2" style="margin-top:16px">从 3% 到 18.28%，70 年间翻了 6 倍。</p>
+    </div>
+    <div class="reveal d2">
+      <div class="ladder" id="ladder">
+        <div class="ladder-row" data-ev="新中国成立后首批民兵林场建立，森林覆盖率仅 3%，几乎无树可挡风沙。">
+          <div class="ladder-meta"><span class="ladder-year">1950</span></div>
+          <div class="ladder-bar" style="width:16%">3%</div>
+          <span class="ladder-tree">🌱</span>
+        </div>
+        <div class="ladder-row" data-ev="三北防护林工程启动，民勤列入重点建设区域，覆盖率稳步提升。">
+          <div class="ladder-meta"><span class="ladder-year">1980</span></div>
+          <div class="ladder-bar" style="width:25%">4.8%</div>
+          <span class="ladder-tree">🌱</span>
+        </div>
+        <div class="ladder-row" data-ev="石羊河流域治理、关井压田、跨流域调水落地，覆盖率达两位数。">
+          <div class="ladder-meta"><span class="ladder-year">2000</span></div>
+          <div class="ladder-bar" style="width:64%">12.08%</div>
+          <span class="ladder-tree">🌿</span>
+        </div>
+        <div class="ladder-row" data-ev="蚂蚁森林等互联网治沙项目落地，社会化治沙力量涌入。">
+          <div class="ladder-meta"><span class="ladder-year">2010</span></div>
+          <div class="ladder-bar" style="width:90%">17.91%</div>
+          <span class="ladder-tree">🌿</span>
+        </div>
+        <div class="ladder-row" data-ev="荒漠化趋势被彻底逆转，森林覆盖率突破 18.28%，绿洲有了可靠的生态屏障。">
+          <div class="ladder-meta"><span class="ladder-year">2023</span></div>
+          <div class="ladder-bar" style="width:100%">18.28%</div>
+          <span class="ladder-tree">🌳</span>
+        </div>
+      </div>
+      <div class="ladder-ev" id="ladderEv">← 悬停阶梯查看节点事件</div>
+    </div>
+  </div>
+  <p class="pb-caption mobile-only reveal d2">从 3% 到 18.28%，民勤人用 70 年让森林覆盖率翻了 6 倍，荒漠化趋势被彻底逆转。</p>
+  <div class="edge-clip edge-sage">
+    <svg viewBox="0 0 1000 64" preserveAspectRatio="none"><path class="eg-fill" d="M0,0 L1000,0 L1000,28 C900,46 820,24 740,42 C640,60 560,30 460,48 C360,62 280,32 200,46 C120,58 60,34 0,42 Z"/></svg>
+  </div>
+</div>
+
+<!--
+════════════════════════════════════════════════════════
+CHAPTER 03 — 请到民勤种棵树
+═══════════════════════════════════════════════════════
+-->
+<div class="chapter-title bg-wrap bg-ch3" id="chapter3" style="background:var(--gold);color:#fff">
+  <div class="bg-img"></div>
+  <div class="haze haze-gold"></div>
+  <div class="edge-clip edge-gold">
+    <svg viewBox="0 0 1000 64" preserveAspectRatio="none"><path class="eg-fill" d="M0,0 L1000,0 L1000,30 C900,48 820,26 740,44 C640,62 560,32 460,50 C360,64 280,34 200,46 C120,58 60,36 0,44 Z"/></svg>
+  </div>
+  <div class="chapter-grid">
+    <div>
+      <div class="section-label reveal" style="color:rgba(255,255,255,0.8)">Chapter 03</div>
+      <h2 class="reveal d1" style="color:#fff">请到民勤<br>种棵树</h2>
+      <p class="reveal d2" style="color:rgba(255,255,255,0.9);font-size:clamp(.95rem,1.5vw,1.15rem);max-width:500px;line-height:1.65">从 2300 到 5 万+，一场全民治沙的热潮。</p>
+      <p class="reveal d2" style="color:rgba(255,255,255,0.6);font-size:.82rem;max-width:480px;line-height:1.7">当综艺节目遇上荒漠，当年轻人拿起铁锹，治沙不再是老一代人的沉重使命，而成为一场跨越千里的温暖奔赴。</p>
+    </div>
+    <!-- Companion: Human Wave Counter -->
+    <div class="chapter-side reveal d2">
+      <span class="cs-label">人潮计数器</span>
+      <div style="display:flex;align-items:baseline;gap:2px">
+        <span class="wave-num" id="waveCounter" data-target="50000">0</span>
+        <span class="wave-unit">人次</span>
+      </div>
+      <div class="wave-caption">累计参与治沙种树</div>
+      <div class="wave-from">
+        <span class="old">2,300</span>
+        <span class="arrow">→</span>
+        <strong>50,000+</strong>
+        <span style="opacity:.5;margin-left:6px">2023 → 2026</span>
+      </div>
+      <div class="wave-dots" id="waveDots">
+        <div class="wave-dot" style="background:#388453">陈<span class="dot-tip">陈少熙</span></div>
+        <div class="wave-dot" style="background:#2f9543">何<span class="dot-tip">何浩楠</span></div>
+        <div class="wave-dot" style="background:#177333">蒋<span class="dot-tip">蒋敦豪</span></div>
+        <div class="wave-dot" style="background:#08741d">鹭<span class="dot-tip">鹭卓</span></div>
+        <div class="wave-dot" style="background:#006f27">李<span class="dot-tip">李耕耘</span></div>
+        <div class="wave-dot" style="background:#cf9000">李<span class="dot-tip">李昊</span></div>
+        <div class="wave-dot" style="background:#b87d0a">王<span class="dot-tip">王一珩</span></div>
+        <div class="wave-dot" style="background:#e6a817">赵<span class="dot-tip">赵小童</span></div>
+        <div class="wave-dot" style="background:#388453">卓<span class="dot-tip">卓沅</span></div>
+        <div class="wave-dot" style="background:#2f9543">赵<span class="dot-tip">赵一博</span></div>
+      </div>
+      <div class="wave-foot">十个勤天 · 在民勤种树</div>
+    </div>
+  </div>
+</div>
+
+<!-- 十个勤天 clickable block -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">十个勤天</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">他们为什么来到民勤</h3>
+    <p class="reveal d2" style="margin-bottom:24px">十个年轻人，用直播与短视频把民勤蜜瓜卖向全国，也让种树成为年轻人的新潮流</p>
+
+    <div class="expandable-block reveal d2" id="block-tqd">
+      <button class="expand-toggle" onclick="toggleBlock('block-tqd')">
+        <div class="expand-toggle-icon" style="background:rgba(207,144,0,0.15);color:var(--gold)">&#128444;</div>
+        <div class="expand-toggle-text">
+          <h3>十个勤天 &mdash; Logo &amp; 成员合照占位</h3>
+          <p>点击展开综艺详情 &amp; 查看所有成员头像</p>
+        </div>
+      </button>
+      <div class="expand-content">
+        <div class="expand-content-inner">
+          <div class="ph-full" style="margin-top:8px">
+            <div class="ph-img"><img src="page/13.png" alt="十个勤天 Logo 与成员合照" loading="lazy"></div>
+            <div class="ph-caption"><strong>十个勤天。</strong>十位年轻人走进民勤，用直播与短视频把种树变成年轻人的新潮流。</div>
+          </div>
+          <div class="story-tl">
+            <div class="story-tl-item">
+              <div class="story-tl-badge">2023 秋</div>
+              <div class="story-tl-body">
+                <p>十位年轻人第一次踏上民勤的土地。有人连麦草都没摸过，有人连梭梭和沙枣都分不清。但当他们亲手在沙窝里扎下第一个草方格、种下第一棵梭梭苗时，一切都变了。</p>
+              </div>
+            </div>
+            <div class="story-tl-item">
+              <div class="story-tl-badge">2024</div>
+              <div class="story-tl-body">
+                <p>住在村民家里，每天凌晨五点起床，顶着风沙去田里干活。没有滤镜、没有剧本，只有真实的汗水和晒黑的皮肤。直播时蹲在田埂上吃盒饭，一场直播卖出 20 万斤蜜瓜，让"民勤蜜瓜"第一次登上热搜。</p>
+              </div>
+            </div>
+            <div class="story-tl-item">
+              <div class="story-tl-badge">2025</div>
+              <div class="story-tl-body">
+                <p>种树、养羊、卖瓜、修路……两年时间在民勤建起真实的农业基地。微博话题<em style="color:var(--gold);font-style:normal;font-weight:600">#去民勤种棵树#</em>阅读量突破 30 亿，"十个勤天"从综艺名字变成了"年轻人回乡种树"的文化符号。</p>
+              </div>
+            </div>
+            <div class="story-tl-item">
+              <div class="story-tl-badge">2026</div>
+              <div class="story-tl-body">
+                <p>每个周末都有年轻人从全国各地赶来民勤，只为种下属于自己的那棵梭梭。他们种下的不仅是树，更是一种信念：沙漠可以被改变，只要你愿意弯下腰来。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Volunteer Growth (bar) — Interactive -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">志愿者增长</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">三年爆发式增长</h3>
+    <p class="lede reveal d2">2023 到 2026，参与人数增长 20 余倍。点击柱形查看逐年解读。</p>
+
+    <div class="ic-layout reveal d2">
+      <div class="ic-chart" style="position:relative">
+        <svg viewBox="0 0 480 240" id="volunteerChart">
+          <line x1="40" y1="20" x2="40" y2="200" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+          <line x1="40" y1="200" x2="450" y2="200" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+          <line x1="40" y1="20" x2="450" y2="20" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="40" y1="73" x2="450" y2="73" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="40" y1="126" x2="450" y2="126" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <line x1="40" y1="180" x2="450" y2="180" stroke="rgba(0,0,0,0.03)" stroke-width="1" stroke-dasharray="4"/>
+          <text x="32" y="24" text-anchor="end" fill="#808080" font-size="8">5万</text>
+          <text x="32" y="77" text-anchor="end" fill="#808080" font-size="8">4万</text>
+          <text x="32" y="130" text-anchor="end" fill="#808080" font-size="8">2万</text>
+          <text x="32" y="184" text-anchor="end" fill="#808080" font-size="8">1万</text>
+          <text x="32" y="204" text-anchor="end" fill="#808080" font-size="8">0</text>
+          <g class="ic-clickable bar-col" data-id="0">
+            <rect class="draw-area-grow" x="80" y="196" width="50" height="4" rx="3" fill="#388453" opacity=".35" style="transform-origin:80px 200px"/>
+            <text x="105" y="189" text-anchor="middle" fill="#388453" font-size="9" font-weight="600">2300</text>
+            <text x="105" y="218" text-anchor="middle" fill="#808080" font-size="8">2023</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="1">
+            <rect class="draw-area-grow" x="165" y="194" width="50" height="6" rx="3" fill="#388453" opacity=".5" style="transform-origin:165px 200px"/>
+            <text x="190" y="187" text-anchor="middle" fill="#388453" font-size="9" font-weight="600">6000</text>
+            <text x="190" y="218" text-anchor="middle" fill="#808080" font-size="8">2024</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="2">
+            <rect class="draw-area-grow" x="250" y="152" width="50" height="48" rx="3" fill="#388453" opacity=".7" style="transform-origin:250px 200px"/>
+            <text x="275" y="145" text-anchor="middle" fill="#388453" font-size="9" font-weight="600">4.1万</text>
+            <text x="275" y="218" text-anchor="middle" fill="#808080" font-size="8">2025</text>
+          </g>
+          <g class="ic-clickable bar-col" data-id="3">
+            <rect class="draw-area-grow" x="335" y="20" width="50" height="180" rx="3" fill="#388453" style="transform-origin:335px 200px"/>
+            <text x="360" y="13" text-anchor="middle" fill="#282828" font-size="11" font-weight="700">5万+</text>
+            <text x="360" y="218" text-anchor="middle" fill="#808080" font-size="8">2026</text>
+          </g>
+        </svg>
+      </div>
+      <div class="ic-side" id="volunteerSide">
+        <div class="ic-detail-card empty" id="volunteerCard">
+          <div class="empty-icon">&#128270;</div>
+          <div>点击柱形图查看详细解读</div>
+        </div>
+        <div class="ph-sm" style="margin-top:0">
+          <div class="ph-img"><img src="page/14.png" alt="志愿者种树实拍" loading="lazy"></div>
+          <div class="ph-caption"><strong>志愿者种树实拍。</strong>从全国各地赶来的志愿者躬身入沙，三年间参与人数增长 20 余倍。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Key Results -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">核心成果</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">种下的每一棵树都是对未来的承诺</h3>
+    <p class="lede reveal d2">三年时间，民勤新增了什么？点击每组数字查看具体成果。</p>
+    <div class="stats-grid reveal d2" id="coreGrid">
+      <div class="stat-card" data-s="a">
+        <div class="stat-num" data-count="152">0</div>
+        <div class="stat-label">万株 种植总数</div>
+      </div>
+      <div class="stat-card" data-s="b">
+        <div class="stat-num" data-count="4500">0</div>
+        <div class="stat-label">亩 新增林地</div>
+      </div>
+      <div class="stat-card" data-s="c">
+        <div class="stat-num" data-count="7">0</div>
+        <div class="stat-label">万+亩 梭梭林</div>
+      </div>
+      <div class="stat-card" data-s="d">
+        <div class="stat-num gold-num" data-count="85">0</div>
+        <div class="stat-label">% 平均成活率</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live streaming -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">直播带货</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">手机是新农具，直播是新农活</h3>
+    <p class="lede reveal d2">十个勤天用短视频把蜜瓜卖向全国，一场直播卖出 20 万斤。</p>
+
+    <div class="live-layout reveal d2">
+      <!-- Left: scene placeholder -->
+      <div class="ph-sm" style="margin:0">
+        <div class="ph-img"><img src="page/15.png" alt="直播卖瓜场景" loading="lazy"></div>
+        <div class="ph-caption"><strong>直播卖瓜场景。</strong>田埂上支起手机，民勤蜜瓜一场直播卖出 20 万斤，远销全国。</div>
+      </div>
+      <!-- Right: data badges -->
+      <div class="live-badges">
+        <div class="live-badge" data-pop="一场直播卖出 20 万斤蜜瓜，相当于 100 亩地的总产量">
+          <div class="live-badge-num">20<span>万斤</span></div>
+          <div class="live-badge-label">单场直播销量</div>
+        </div>
+        <div class="live-badge gold" data-pop="民勤蜜瓜首次登上微博热搜，话题曝光超 5 亿次">
+          <div class="live-badge-num">5<span>亿次</span></div>
+          <div class="live-badge-label">热搜话题曝光</div>
+        </div>
+        <div class="live-badge" data-pop="直播带动蜜瓜线上销量同比增长 300%，远销全国 30 个省份">
+          <div class="live-badge-num">300<span>%</span></div>
+          <div class="live-badge-label">线上销量增长</div>
+        </div>
+        <div class="live-badge gold" data-pop="微博话题 #去民勤种棵树# 累计阅读量突破 30 亿">
+          <div class="live-badge-num">30<span>亿</span></div>
+          <div class="live-badge-label">话题阅读量</div>
+        </div>
+      </div>
+    </div>
+    <div class="live-tip" id="liveTip">← 悬停徽章查看详细数据</div>
+  </div>
+</div>
+
+<!-- Tourism Growth -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">文旅增长</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">沙漠文旅崛起</h3>
+    <p class="lede reveal d2">2024-2026 三年井喷，绿色名片带来旅游经济大爆发。点击数字查看详情。</p>
+    <div class="stats-grid reveal d3" id="tourismGrid">
+      <div class="stat-card" data-s="a">
+        <div class="stat-num gold-num" data-count="70">0</div>
+        <div class="stat-label">% 接待人数增速</div>
+      </div>
+      <div class="stat-card" data-s="b">
+        <div class="stat-num gold-num" data-count="79">0</div>
+        <div class="stat-label">% 旅游收入增速</div>
+      </div>
+      <div class="stat-card" data-s="c">
+        <div class="stat-num" data-count="127.86" data-decimal="2">0</div>
+        <div class="stat-label">万人次 年接待量</div>
+      </div>
+      <div class="stat-card" data-s="d">
+        <div class="stat-num gold-num" data-count="7.66" data-decimal="2">0</div>
+        <div class="stat-label">亿元 年收入</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Parallax Band 3 — 累计种植 -->
+<div class="parallax-band gold-band" id="parallax3">
+  <div class="pb-grid">
+    <div class="reveal">
+      <div class="big-stat" data-count="152">0</div>
+      <div class="big-stat-label reveal d1">万株 累计种植</div>
+      <p class="pb-caption desktop-only reveal d2" style="margin-top:16px">三年扎根沙海，每年新增 380 个足球场大小的绿地。</p>
+    </div>
+    <div class="reveal d2">
+      <div class="stack-wrap">
+        <div class="stack-bar">
+          <div class="stack-seg" style="flex-grow:52.6;background:#1a5c32" data-tip="梭梭 · 超旱生灌木，寿命百年，一株可固沙 10m²">
+            <span>梭梭 80万</span>
+            <span class="st-tip">梭梭 · 超旱生，一株固沙 10m²</span>
+          </div>
+          <div class="stack-seg" style="flex-grow:26.3;background:#2f9543" data-tip="花棒 · 根系深达 5m，花期紫红，兼具固沙与观赏">
+            <span>花棒 40万</span>
+            <span class="st-tip">花棒 · 根系深 5m，固沙观赏两用</span>
+          </div>
+          <div class="stack-seg" style="flex-grow:21.1;background:#5bab6e" data-tip="沙枣 · 耐盐碱、果实可食，生态与经济兼用">
+            <span>沙枣 32万</span>
+            <span class="st-tip">沙枣 · 耐盐碱，果实可食</span>
+          </div>
+        </div>
+        <div class="stack-legend">
+          <span><span class="stack-dot" style="background:#1a5c32"></span>梭梭 80万</span>
+          <span><span class="stack-dot" style="background:#2f9543"></span>花棒 40万</span>
+          <span><span class="stack-dot" style="background:#5bab6e"></span>沙枣 32万</span>
+        </div>
+        <div class="stack-sub" id="stackSub">← 悬停色块查看树种特性</div>
+      </div>
+    </div>
+  </div>
+  <p class="pb-caption mobile-only reveal d2">三年时间，152 万株苗木在民勤沙海扎根，相当于每年新增 380 个足球场大小的绿地。</p>
+  <div class="edge-clip edge-gold">
+    <svg viewBox="0 0 1000 64" preserveAspectRatio="none"><path class="eg-fill" d="M0,0 L1000,0 L1000,32 C910,50 830,30 750,48 C650,66 570,34 470,52 C370,66 300,36 220,48 C140,60 70,38 0,46 Z"/></svg>
+  </div>
+</div>
+
+<!--
+════════════════════════════════════════════════════════
+FINALE — 一棵树的礼物
+═══════════════════════════════════════════════════════
+-->
+<div class="chapter-title bg-wrap bg-finale" id="finale" style="background:var(--green-dark);color:#fff">
+  <div class="bg-img"></div>
+  <div class="haze haze-green"></div>
+  <div class="edge-clip edge-dark">
+    <svg viewBox="0 0 1000 64" preserveAspectRatio="none"><path class="eg-fill" d="M0,0 L1000,0 L1000,28 C920,46 840,28 760,44 C660,60 580,32 480,48 C380,62 300,34 220,46 C140,56 70,36 0,42 Z"/></svg>
+  </div>
+  <div class="chapter-grid">
+    <div>
+      <div class="section-label reveal" style="color:rgba(255,255,255,0.6)">终章</div>
+      <h2 class="reveal d1" style="color:#fff">一棵树<br>的礼物</h2>
+      <p class="reveal d2" style="color:rgba(255,255,255,0.8);font-size:clamp(.95rem,1.5vw,1.15rem);max-width:500px;line-height:1.65">沙中种出绿色经济，荒原结出致富果实。</p>
+      <p class="reveal d2" style="color:rgba(255,255,255,0.5);font-size:.82rem;max-width:480px;line-height:1.7">民勤人种下的每一棵树，都是一份写给未来的礼物 &mdash; 关于丰收、关于希望、关于在绝望之地创造生机的勇气。</p>
+    </div>
+    <!-- Companion: Four Specialties Grid -->
+    <div class="chapter-side reveal d2">
+      <span class="cs-label">沙中果实档案</span>
+      <div class="spec-grid" id="specGrid">
+        <div class="spec-card open" data-spec="0">
+          <div class="spec-ph">人参果<br>◉</div>
+          <div class="spec-name">人参果之乡</div>
+          <div class="spec-stat">3.52万亩 · 9.4亿元</div>
+          <div class="spec-body">民勤是国内人参果核心种植产区，设施种植规模占全国三成以上。充足光照与大昼夜温差，让民勤人参果口感清脆、营养丰富，成为沙区致富的"黄金果"。</div>
+        </div>
+        <div class="spec-card" data-spec="1">
+          <div class="spec-ph">蜜瓜<br>◇</div>
+          <div class="spec-name">蜜瓜之乡</div>
+          <div class="spec-stat">16.88万亩 · 四季飘香</div>
+          <div class="spec-body">从"一季有瓜"到"四季飘香"，民勤蜜瓜种植达 16.88 万亩。沙壤土与昼夜温差赋予蜜瓜超高糖度，直播带货让蜜瓜销往全国。</div>
+        </div>
+        <div class="spec-card" data-spec="2">
+          <div class="spec-ph">沙葱<br>✦</div>
+          <div class="spec-name">沙葱之乡</div>
+          <div class="spec-stat">1.5万亩 · 2亿元</div>
+          <div class="spec-body">西北最大人工沙葱种植基地。沙葱耐旱耗水少，根系可固沙保土，兼顾生态防护与经济效益，入选省级"甘味"农产品，带动五千余农户增收。</div>
+        </div>
+        <div class="spec-card" data-spec="3">
+          <div class="spec-ph">茴香<br>△</div>
+          <div class="spec-name">茴香之乡</div>
+          <div class="spec-stat">8万亩 · 全国前列</div>
+          <div class="spec-body">依托充足光照、大昼夜温差与优质沙壤土，推行绿色标准化智慧种植，茴香种植规模与科技化程度位居全国前列。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Four Specialties clickable block -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">四大特产</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">沙乡物产 &mdash; 荒漠中的金色馈赠</h3>
+    <p class="lede reveal d2" style="margin-bottom:20px">沙质土壤、巨大昼夜温差与充足日照，让民勤成为四座"之乡"的产地。种出来的不只是果实，更是沙区致富的希望。</p>
+    <div class="ph-split reveal d2">
+      <div class="ph-sm">
+        <div class="ph-img"><img src="page/16.png" alt="四种特产实物拼合" loading="lazy"></div>
+        <div class="ph-caption"><strong>四种特产实物拼合。</strong>蜜瓜、人参果、沙茴香、沙葱——沙乡风味，甜在舌尖。</div>
+      </div>
+      <div class="ph-sm">
+        <div class="ph-img"><img src="page/17.png" alt="民勤农田物产实拍" loading="lazy"></div>
+        <div class="ph-caption"><strong>民勤农田物产。</strong>日光温室与拱棚连绵林立，昔日荒沙地长出了致富金果。</div>
+      </div>
+    </div>
+
+    <div class="cards-grid reveal d3" id="specialtyCards">
+      <div class="card reveal" onclick="toggleCardDetail(this)">
+        <div class="card-icon">&#9679;</div>
+        <div class="card-title">参果之乡</div>
+        <div class="card-desc">国内人参果核心种植产区，沙质土壤造就独特口感</div>
+        <div class="card-stat">3.52 万亩</div>
+        <div class="card-expand-hidden">
+          <p>民勤人参果是国内公认的最好品种，沙质土壤富含矿物质，昼夜温差超过 15&#8451;，让果实糖分充分累积。设施种植规模占全国三成以上，年产值 9.4 亿元，是民勤最具代表性的农产品之一。</p>
+        </div>
+        <button class="card-expand-btn"><span></span></button>
+      </div>
+      <div class="card reveal d1" onclick="toggleCardDetail(this)">
+        <div class="card-icon">&#9679;</div>
+        <div class="card-title">蜜瓜之乡</div>
+        <div class="card-desc">国家地理标志产品，实现从"一季有瓜"到"四季飘香"</div>
+        <div class="card-stat">16.88 万亩</div>
+        <div class="card-expand-hidden">
+          <p>民勤蜜瓜是国家地理标志保护产品。依托日光温室和拱棚栽培，民勤蜜瓜实现了从"一季有瓜"到"全年飘香"的跨越。十个勤天直播带货后，蜜瓜线上销量增长 300%，成为民勤最响亮的富民产业名片。</p>
+        </div>
+        <button class="card-expand-btn"><span></span></button>
+      </div>
+      <div class="card reveal d2" onclick="toggleCardDetail(this)">
+        <div class="card-icon">&#9679;</div>
+        <div class="card-title">沙葱之乡</div>
+        <div class="card-desc">西北最大人工沙葱基地，节水固沙增产三位一体</div>
+        <div class="card-stat">1.5 万亩</div>
+        <div class="card-expand-hidden">
+          <p>沙葱是沙漠中的天然蔬菜，耐旱、耗水少，根系还能固沙保土。民勤是西北最大的人工沙葱种植基地，入选省级"甘味"农产品品牌。全县种植 1.5 万亩，年产值超 2 亿元，带动五千余农户增收。</p>
+        </div>
+        <button class="card-expand-btn"><span></span></button>
+      </div>
+      <div class="card reveal d3" onclick="toggleCardDetail(this)">
+        <div class="card-icon">&#9679;</div>
+        <div class="card-title">茴香之乡</div>
+        <div class="card-desc">全国最大优质茴香生产基地，绿色标准化智慧种植</div>
+        <div class="card-stat">8 万亩</div>
+        <div class="card-expand-hidden">
+          <p>民勤充足的日照、大昼夜温差与优质沙壤土，造就了全国领先的茴香品质。全县推行绿色标准化智慧种植，全流程严控品质，种植面积稳定在 8 万亩以上，规模与科技化程度位居全国前列。</p>
+        </div>
+        <button class="card-expand-btn"><span></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Green Economy -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="section-label reveal">绿色经济</div>
+    <h3 class="reveal d1" style="margin-bottom:8px">治沙与致富双赢之路</h3>
+    <p class="lede reveal d2">从治沙到致富，民勤用绿色经济证明：沙漠也能长出 GDP。点击数字查看详情。</p>
+    <div class="stats-grid reveal d2" id="greenGrid">
+      <div class="stat-card" data-s="a">
+        <div class="stat-num gold-num" data-count="45">0</div>
+        <div class="stat-label">亿+ 绿色经济总量</div>
+      </div>
+      <div class="stat-card" data-s="b">
+        <div class="stat-num" data-count="25.2" data-decimal="1">0</div>
+        <div class="stat-label">亿元 林草产业产值</div>
+      </div>
+      <div class="stat-card" data-s="c">
+        <div class="stat-num" data-count="14.3" data-decimal="1">0</div>
+        <div class="stat-label">万亩 经济林面积</div>
+      </div>
+      <div class="stat-card" data-s="d">
+        <div class="stat-num" data-count="300">0</div>
+        <div class="stat-label">km+ 防护林带</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Callout — quote + image -->
+<div class="wrap">
+  <div class="section-tight">
+    <div class="callout reveal">
+      <div class="callout-quote">
+        <div class="callout-mark">"</div>
+        <p>从一棵梭梭到万亩林海，从漫天黄沙到瓜果飘香。民勤人用 70 年证明：种树，是沙漠给人类最好的礼物；而坚持，是人类给沙漠最好的回答。</p>
+      </div>
+      <div class="callout-ph">
+        <div class="ph-sm" style="margin:0">
+          <div class="ph-img"><img src="page/18.png" alt="希望之树意象" loading="lazy"></div>
+          <div class="ph-caption"><strong>希望之树意象。</strong>夕阳下梭梭林的剪影，是民勤人写给未来的情书。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Final CTA -->
+<div class="finale-cta" id="cta">
+  <h2 class="reveal">下一棵树<br><span class="green">由你来种</span></h2>
+  <p class="reveal d1" style="margin-top:20px;max-width:520px;margin-left:auto;margin-right:auto;font-size:clamp(.95rem,1.4vw,1.15rem);line-height:1.65">关注民勤治沙，参与种树行动。每一棵梭梭，都是写给未来的情书。</p>
+  <p class="reveal d2" style="font-size:.82rem;color:var(--text-muted);max-width:460px;margin-left:auto;margin-right:auto;line-height:1.7">你种下的一棵树，防风固沙、调节气候、产生碳汇、帮助农民增收。这就是一棵树的力量。</p>
+  <div class="reveal d2" style="margin-top:40px">
+    <a href="javascript:void(0)" class="nav-back" style="font-size:.85rem;padding:12px 28px;border-color:var(--green-primary);color:#fff;background:var(--green-primary);border-radius:10px" onclick="handleBack()">&larr; 返回首页</a>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<div class="footer">
+  <p>民勤治沙 &middot; 数据新闻可视化</p>
+  <p style="margin-top:8px">数据来源：民勤县统计局、国家林草局、甘肃日报</p>
+</div>
+
+<script>
+/* ═══════ SCROLL PROGRESS ═══════ */
+window.addEventListener('scroll',function(){
+  var h=document.documentElement;
+  var prog=h.scrollHeight-h.clientHeight;
+  var p=prog>0?window.scrollY/prog:0;
+  document.getElementById('scrollProgress').style.width=(p*100)+'%';
+});
+window.addEventListener('scroll',function(){
+  var nav=document.getElementById('nav');
+  if(window.scrollY>60)nav.classList.add('scrolled');else nav.classList.remove('scrolled');
+});
+
+/* ═══════ NAV ACTIVE STATE ═══════ */
+var sections=document.querySelectorAll('section,.chapter-title');
+window.addEventListener('scroll',function(){
+  var cur='';
+  var y=window.scrollY+200;
+  sections.forEach(function(s){
+    if(s.offsetTop<=y&&s.offsetTop+s.offsetHeight>y)cur=s.id;
+  });
+  document.querySelectorAll('.nav-link').forEach(function(l){
+    l.classList.remove('active');
+    if(l.getAttribute('href')==='#'+cur)l.classList.add('active');
+  });
+});
+
+/* ═══════ DOT NAV ═══════ */
+var dotNav=document.getElementById('dotNav');
+requestAnimationFrame(function(){dotNav.classList.add('in');});
+var dotItems=document.querySelectorAll('.dot-nav-item');
+dotItems.forEach(function(item){
+  item.addEventListener('click',function(){
+    var t=document.getElementById(item.dataset.target);
+    if(t)t.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+window.addEventListener('scroll',function(){
+  var y=window.scrollY+200;
+  var cur='hero';
+  sections.forEach(function(s){
+    if(s.offsetTop<=y)cur=s.id;
+  });
+  dotItems.forEach(function(item){
+    item.classList.toggle('active',item.dataset.target===cur);
+  });
+});
+
+/* ═══════ MOBILE MENU ═══════ */
+function toggleMobile(){
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+
+/* ═══════ BACK BUTTON ═══════ */
+function handleBack(){
+  // 返回首页：滚动到页面顶部
+  window.scrollTo({top:0,behavior:'smooth'});
+  // 在 Readymag iframe 中同时通知父页面
+  if(window.parent&&window.parent!==window)window.parent.postMessage('navigate:home','*');
+}
+
+/* ═══════ REVEAL ON SCROLL ═══════ */
+var revObs=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('in');revObs.unobserve(e.target);}
+  });
+},{threshold:0.12,rootMargin:'0px 0px -60px 0px'});
+document.querySelectorAll('.reveal,.reveal-l,.reveal-r,.reveal-scale').forEach(function(r){revObs.observe(r)});
+
+/* ═══════ COUNT-UP NUMBERS ═══════ */
+/* Pre-fill values so users see real numbers (not "0") before scroll-triggered animation */
+document.querySelectorAll('[data-count]').forEach(function(el){
+  var raw=el.dataset.count,dec=el.dataset.decimal?parseInt(el.dataset.decimal,10):(raw.includes('.')?2:0);
+  var num=parseFloat(raw),suf=el.textContent.trim().replace(/[\d.]+/,'').trim();
+  el.textContent=num.toLocaleString(undefined,{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;
+});
+var countObs=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting&&!e.target.dataset.done){
+      e.target.dataset.done='1';
+      var t=e.target.textContent.trim(),m=t.match(/[\d,.]+/);
+      if(!m){countObs.unobserve(e.target);return;}
+      var n=parseFloat(m[0].replace(/,/g,'')),suf=t.replace(m[0],'').trim();
+      var dur=1800,start=null;
+      e.target.textContent='0'+suf;
+      (function step(ts){
+        if(!start)start=ts;
+        var p=Math.min((ts-start)/dur,1);
+        var ease=1-Math.pow(1-p,3);
+        var cur=(n*ease);
+        var dec2=m[0].includes('.')?m[0].split('.')[1].length:0;
+        e.target.textContent=cur.toLocaleString(undefined,{minimumFractionDigits:dec2,maximumFractionDigits:dec2})+suf;
+        if(p<1)requestAnimationFrame(step);else e.target.textContent=t;
+      })(0);
+      countObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.4});
+document.querySelectorAll('[data-count]').forEach(function(el){countObs.observe(el)});
+
+/* ═══════ CHAPTER COMPANIONS ═══════ */
+(function(){
+  // Ch03 — Human Wave Counter: count up from 2300 to 50000 on scroll
+  var waveEl=document.getElementById('waveCounter');
+  if(waveEl){
+    var waveObs=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting&&!waveEl.dataset.done){
+          waveEl.dataset.done='1';
+          var from=2300,to=50000,dur=2200,start=null;
+          waveEl.textContent=from.toLocaleString();
+          (function step(ts){
+            if(!start)start=ts;
+            var p=Math.min((ts-start)/dur,1);
+            var ease=1-Math.pow(1-p,3);
+            var cur=Math.round(from+(to-from)*ease);
+            waveEl.textContent=cur.toLocaleString();
+            if(p<1)requestAnimationFrame(step);else waveEl.textContent=to.toLocaleString()+'+';
+          })(0);
+          waveObs.unobserve(e.target);
+        }
+      });
+    },{threshold:0.4});
+    waveObs.observe(waveEl);
+  }
+
+  // Ch02 — Arsenal: single-open accordion
+  var arsenal=document.getElementById('arsenalList');
+  if(arsenal){
+    var items=arsenal.querySelectorAll('.arsenal-item');
+    items.forEach(function(item){
+      item.addEventListener('click',function(){
+        var wasOpen=item.classList.contains('open');
+        items.forEach(function(i){i.classList.remove('open')});
+        if(!wasOpen)item.classList.add('open');
+      });
+    });
+  }
+
+  // Finale — Specialty grid: click to expand one, others visible but compact
+  var specGrid=document.getElementById('specGrid');
+  if(specGrid){
+    var cards=specGrid.querySelectorAll('.spec-card');
+    cards.forEach(function(card){
+      card.addEventListener('click',function(){
+        var wasOpen=card.classList.contains('open');
+        cards.forEach(function(c){c.classList.remove('open')});
+        if(!wasOpen)card.classList.add('open');
+      });
+    });
+  }
+
+  // Before/After slider
+  (function(){
+    var slider=document.getElementById('baSlider');
+    var after=document.getElementById('baAfter');
+    var handle=document.getElementById('baHandle');
+    var range=document.getElementById('baRange');
+    if(!slider||!after||!handle||!range)return;
+    function setVal(v){
+      range.value=v;
+      after.style.clipPath='inset(0 '+(100-v)+'% 0 0)';
+      handle.style.left=v+'%';
+    }
+    range.addEventListener('input',function(){setVal(this.value)});
+    // drag support
+    var dragging=false;
+    function dragTo(e){
+      var rect=slider.getBoundingClientRect();
+      var x=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+      var pct=Math.max(0,Math.min(100,(x/rect.width)*100));
+      setVal(pct);
+    }
+    slider.addEventListener('mousedown',function(e){dragging=true;dragTo(e)});
+    slider.addEventListener('touchstart',function(e){dragging=true;dragTo(e)});
+    window.addEventListener('mousemove',function(e){if(dragging)dragTo(e)});
+    window.addEventListener('mouseup',function(){dragging=false});
+    window.addEventListener('touchend',function(){dragging=false});
+    setVal(50);
+  })();
+
+  // Live badges hover → show detail
+  (function(){
+    var tip=document.getElementById('liveTip');
+    if(!tip)return;
+    var def=tip.textContent;
+    document.querySelectorAll('.live-badge').forEach(function(b){
+      b.addEventListener('mouseenter',function(){tip.textContent=b.dataset.pop||def});
+      b.addEventListener('mouseleave',function(){tip.textContent=def});
+    });
+  })();
+
+  // Band 2 — Ladder: hover row → show event text
+  var ladder=document.getElementById('ladder');
+  var ladderEv=document.getElementById('ladderEv');
+  if(ladder&&ladderEv){
+    var defaultEv=ladderEv.textContent;
+    ladder.querySelectorAll('.ladder-row').forEach(function(row){
+      row.addEventListener('mouseenter',function(){
+        ladderEv.textContent=row.dataset.ev||defaultEv;
+      });
+      row.addEventListener('mouseleave',function(){
+        ladderEv.textContent=defaultEv;
+      });
+    });
+  }
+
+  // Band 3 — Stack: hover seg → show species detail
+  var stackSub=document.getElementById('stackSub');
+  if(stackSub){
+    var defaultSub=stackSub.textContent;
+    document.querySelectorAll('#parallax3 .stack-seg').forEach(function(seg){
+      seg.addEventListener('mouseenter',function(){
+        stackSub.textContent=seg.dataset.tip||defaultSub;
+      });
+      seg.addEventListener('mouseleave',function(){
+        stackSub.textContent=defaultSub;
+      });
+    });
+  }
+
+  /* ═══ LAYER 1 — Atmospheric zone assignment ═══ */
+  // Assign atmos-* class to each .wrap based on which chapter it falls under
+  (function(){
+    // Map chapter landmark IDs to zone class
+    var zones=[
+      {id:'chapter1',cls:'atmos-sand'},
+      {id:'chapter2',cls:'atmos-sage'},
+      {id:'chapter3',cls:'atmos-warm'},
+      {id:'finale',cls:''},
+    ];
+    var wraps=document.querySelectorAll('.wrap');
+    var landmarks=zones.map(function(z){return{documentElement:document.getElementById(z.id),cls:z.cls};});
+    wraps.forEach(function(w){
+      var wTop=w.getBoundingClientRect().top+window.scrollY;
+      var assigned='';
+      for(var i=landmarks.length-1;i>=0;i--){
+        if(landmarks[i].documentElement&&landmarks[i].documentElement.offsetTop<=wTop){
+          assigned=landmarks[i].cls;break;
+        }
+      }
+      if(assigned)w.classList.add(assigned);
+    });
+  })();
+})();
+
+/* ═══════ FOOTPRINT ANIMATION ═══════ */
+/* ═══════ FOOTPRINT VIDEO (2:49 脚印被沙淹没) ═══════ */
+(function(){
+  var stage=document.getElementById('fpStage');
+  var video=document.getElementById('fpVideo');
+  if(!stage||!video)return;
+  function playVideo(){
+    var p=video.play();
+    if(p&&p.then){
+      p.then(function(){stage.classList.add('playing');})
+       .catch(function(){/* autoplay blocked – fallback visible */});
+    }
+  }
+  function restartFootprint(){
+    try{currentTime=0;}catch(e){}
+    video.currentTime=0;
+    stage.classList.remove('playing');
+    playVideo();
+  }
+  window.restartFootprint=restartFootprint;
+  video.addEventListener('playing',function(){stage.classList.add('playing');});
+  var fpObs=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){playVideo();fpObs.unobserve(e.target);}});
+  },{threshold:0.4});
+  fpObs.observe(stage);
+})();
+
+/* ═══════ SVG PATH DRAW ═══════ */
+var drawObs=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('in');drawObs.unobserve(e.target);}
+  });
+},{threshold:0.3});
+document.querySelectorAll('.draw-line,.draw-area,.route-path,.route-dot,.draw-area-grow').forEach(function(el){drawObs.observe(el)});
+
+/* ═══════ INTERACTIVE TIMELINE PATH ═══════ */
+(function(){
+  var tlData=[
+    {year:'1950',label:'群众治沙 · 开端',title:'第一批防沙治沙民兵林场建立',body:'1950 年 1 月，民勤县召开第一次治沙大会，决定在西沙窝建立首批防沙治沙民兵林场。数十名民兵在沙窝里安营扎寨，用双手扎下第一批草方格。这标志着群众性治沙运动在民勤正式拉开序幕。'},
+    {year:'1952',label:'组织化 · 起步',title:'治沙委员会与红崖山林场成立',body:'县治沙委员会统筹全县治沙资源，红崖山林场成为民勤第一个国有林场，至今仍是民勤东线防沙的绿色屏障。'},
+    {year:'1981',label:'国家战略 · 升级',title:'三北防护林工程启动',body:'三北防护林工程是当时世界最大的植树造林工程，民勤被列入核心区，获得国家持续数十年的专项资金投入。这是民勤治沙从民间自发转向国家战略的关键一步。'},
+    {year:'2007',label:'流域治理 · 铁腕',title:'石羊河流域重点治理规划获批',body:'石羊河是民勤的生命之水。流域规划实施关井压田、跨流域调水等铁腕措施，结束了民勤地下水超采的历史。下游年供水量从 0.1 亿 m³ 跃升至 2.6 亿 m³，这也是民勤生态真正迎来拐点的起点。'},
+    {year:'2009',label:'生态复苏 · 标志',title:'青土湖首次重现水域',body:'青土湖曾是民勤最大的湖泊，1959 年彻底干涸。经过两年调水补给，2009 年湖底首次形成 3 km² 水面。此后持续补水至 2023 年已达 26.7 km²，候鸟回归、芦苇重生。'},
+    {year:'2017',label:'互联网 · 破圈',title:'社会化治沙启动',body:'蚂蚁森林在民勤上线梭梭、红柳等治沙树种，网友线上认领、线下由专业种植队统一栽种。这一创新模式让治沙触达数亿互联网用户，带动社会资本投入治沙事业。'},
+    {year:'2020',label:'数据 · 答卷',title:'森林覆盖率突破 18%',body:'经国家林草局监测，民勤森林覆盖率从最早的 3% 提升至 18.28%，荒漠化和沙化面积连续多年实现"双缩减"。这标志着沙漠扩张的态势在民勤被彻底逆转。'},
+    {year:'2025',label:'全民 · 新浪潮',title:'十个勤天带动全民种树',body:'综艺节目《十个勤天》爆火，十位年轻艺人扎根民勤种树、直播卖瓜，将治沙变成年轻人的新社交潮流。2025 年民勤接待游客 127 万人次，旅游收入 7.66 亿元，真正实现了"治沙—种树—致富"的良性循环。'},
+  ];
+
+  window.activateTl=function(id){
+    // Highlight list item
+    document.querySelectorAll('#tlList .tl-item').forEach(function(el){
+      el.classList.toggle('active', parseInt(el.dataset.tl,10)===id);
+    });
+    // Highlight SVG node
+    document.querySelectorAll('#tlPath .tl-node').forEach(function(el){
+      var nid=parseInt(el.dataset.tl,10);
+      el.classList.remove('active','gold-active');
+      if(nid===id) el.classList.add(nid>=4?'gold-active':'active');
+    });
+    // Animate path drawing up to this node
+    var totalLen=600;
+    var offsets=[0,75,150,225,300,380,460,540]; // cumulative lengths along path
+    var activePath=document.getElementById('tlPathActive');
+    if(activePath) activePath.style.strokeDashoffset=(totalLen-offsets[id]||0);
+    // Fill detail card
+    var d=tlData[id];if(!d)return;
+    var card=document.getElementById('tlDetailCard');
+    if(!card)return;
+    card.className='tl-detail-card';
+    card.setAttribute('data-active','1');
+    card.innerHTML=
+      '<div class="tl-dl">'+d.label+'</div>'+
+      '<div class="tl-dy">'+d.year+'</div>'+
+      '<div class="tl-dt">'+d.title+'</div>'+
+      '<div class="tl-db">'+d.body+'</div>';
+  };
+
+  // Auto-activate first node on scroll into view
+  var tlObs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        var first=document.querySelector('#tlPathActive');
+        if(first&&first.style.stroke-dashoffset==='600'){
+          // do not auto-activate; just reveal the base path
+        }
+        tlObs.unobserve(e.target);
+      }
+    });
+  },{threshold:0.3});
+  var tlLayout=document.querySelector('.tl-layout');
+  if(tlLayout)tlObs.observe(tlLayout);
+})();
+
+/* ═══════ TIMELINE STAGGER (legacy) ═══════ */
+var tObs=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.classList.add('in');
+      var items=e.target.querySelectorAll('.titem');
+      items.forEach(function(item,i){
+        setTimeout(function(){item.classList.add('in');},i*120);
+      });
+      tObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.25});
+document.querySelectorAll('.timeline').forEach(function(el){tObs.observe(el)});
+
+/* ═══════ HORIZONTAL SCROLL (mouse wheel) ═══════ */
+var avatarScroll=document.getElementById('avatarScroll');
+if(avatarScroll){
+  avatarScroll.addEventListener('wheel',function(e){
+    if(e.deltaY!==0){e.preventDefault();avatarScroll.scrollLeft+=e.deltaY;}
+  });
+}
+
+/* ═══════ TOGGLE EXPANDABLE BLOCK ═══════ */
+function toggleBlock(id){
+  var block=document.getElementById(id);
+  var wasOpen=block.classList.contains('open');
+  // close others (optional — remove this block to allow multiple open)
+  document.querySelectorAll('.expandable-block.open').forEach(function(b){
+    if(b.id!==id)b.classList.remove('open');
+  });
+  block.classList.toggle('open',!wasOpen);
+}
+
+/* ═══════ TOGGLE CARD DETAIL (四大特产) ═══════ */
+function toggleCardDetail(card){
+  var wasOpen=card.classList.contains('expanded');
+  document.querySelectorAll('#specialtyCards .card.expanded').forEach(function(c){
+    if(c!==card)c.classList.remove('expanded');
+  });
+  card.classList.toggle('expanded',!wasOpen);
+}
+
+/* ═══════ INTERACTIVE CHART → SINGLE CARD REVEAL ═══════ */
+(function(){
+  // Land Pie Chart — fills a single card; only shows after first click
+  var landPie=document.getElementById('landPie');
+  var landCard=document.getElementById('landCard');
+  if(landPie&&landCard){
+    var landData=[
+      {label:'荒漠化土地',num:'14,275',title:'km&sup2; 的荒漠与沙丘',body:'占全县总面积的 90.34%。腾格里与巴丹吉林两大沙漠从西北、西南两个方向合围而来，黄沙覆盖了将近三分之一宁夏的面积。每一寸绿洲都是被沙海围成的孤岛。',gold:true,green:false},
+      {label:'绿洲',num:'1,527',title:'km&sup2; 的人间烟火',body:'仅占全县 9.66%，却聚居着 16.95 万人口。绿洲用百分之十的土地，承载了生养、耕种与全部的希望。我国"三北"防护林工程 60% 的人工梭梭林就种植在这一小片绿洲的边缘。',gold:false,green:true},
+      {label:'生态移民',num:'7,000',title:'余户被迫离乡',body:'40 年间 305 个村庄被沙埋、600 多个被毁。失去家园的村民迁往他乡，绿洲面积缩减了 18%。现在通过关井压田、生态补水等举措，正持续减少生态移民的产生。',gold:true,green:false},
+    ];
+    landPie.querySelectorAll('.ic-clickable').forEach(function(elem){
+      elem.addEventListener('click',function(){
+        var id=parseInt(elem.dataset.id,10);
+        var d=landData[id];if(!d)return;
+        landPie.querySelectorAll('.ic-clickable').forEach(function(e){e.classList.remove('active')});
+        elem.classList.add('active');
+        landCard.className='ic-detail-card';
+        landCard.innerHTML=
+          '<div class="ic-detail-label">'+d.label+'</div>'+
+          '<div class="ic-detail-num'+(d.gold?' gold-num':'')+'"'+(d.green?' style="color:#388453"':"")+'>'+d.num+'</div>'+
+          '<div class="ic-detail-title">'+d.title+'</div>'+
+          '<div class="ic-detail-body">'+d.body+'</div>';
+        if(d.green)landCard.querySelector('.ic-detail-num').style.color='#388453';
+      });
+    });
+  }
+
+  // Route Map waypoints — fills a single card with location details + metadata
+  var routeMap=document.getElementById('routeMap');
+  var routeCard=document.getElementById('routeCard');
+  if(routeMap&&routeCard){
+    var routeData=[
+      {
+        label:'起点 · 武威',
+        num:'0',
+        unit:'km',
+        title:'河西走廊的东大门',
+        body:'民勤是武威市下辖的一个县，从武威出发向北偏西行进，才正式进入沙海。武威古称凉州，是丝绸之路上的重镇，也是民勤与外界物资、人员往来的关键节点。',
+        meta:[
+          {k:'坐标',v:'N37.9° E102.6°'},
+          {k:'海拔',v:'1,506m'},
+          {k:'距民勤',v:'137km'},
+        ]
+      },
+      {
+        label:'第一站 · 民勤桥',
+        num:'60',
+        unit:'km',
+        title:'民勤南大门的咽喉要道',
+        body:'民勤桥是进入民勤境内的第一个地标。这里曾是石羊河进入民勤的咽喉，如今是一座跨越干涸河道的公路桥。从武威到此 60 公里，植被逐渐稀疏，沙漠开始显现。',
+        meta:[
+          {k:'坐标',v:'N38.2° E103.1°'},
+          {k:'海拔',v:'1,380m'},
+          {k:'地貌',v:'戈壁荒漠'},
+        ]
+      },
+      {
+        label:'第二站 · 昌盛',
+        num:'102',
+        unit:'km',
+        title:'穿过流沙腹地的中转',
+        body:'昌盛乡位于民勤腹地，是从武威到民勤县城的中间点。四周被流动沙丘包围，是风沙最猛烈的区域之一。过去沙尘暴来临时，这里伸手不见五指。如今林草带已逐渐合围。',
+        meta:[
+          {k:'坐标',v:'N38.4° E103.3°'},
+          {k:'海拔',v:'1,320m'},
+          {k:'人口',v:'约1.8万'},
+        ]
+      },
+      {
+        label:'第三站 · 中渠',
+        num:'120',
+        unit:'km',
+        title:'治沙前线的哨所',
+        body:'中渠乡曾是民勤沙化最严重的乡镇之一。这里的村民从 1980 年代起就自发扎草方格固沙，是"三北防护林"工程最艰苦的战场。从民勤桥到这里，每一步都在与流动沙丘抢时间。',
+        meta:[
+          {k:'坐标',v:'N38.5° E103.3°'},
+          {k:'海拔',v:'1,300m'},
+          {k:'沙埋村庄',v:'7个'},
+        ]
+      },
+      {
+        label:'终点 · 民勤绿洲',
+        num:'137',
+        unit:'km',
+        title:'沙海中的一叶绿舟',
+        body:'137 公里外，民勤县城被 90.34% 的荒漠化土地包围着。它像一片孤舟漂浮在沙海之中，用 9.66% 的绿洲土地养活着 16.95 万人口。这里的每一棵树、每一片草，都是人与沙漠 70 年角力的见证。',
+        meta:[
+          {k:'坐标',v:'N38.6° E103.1°'},
+          {k:'海拔',v:'1,298m'},
+          {k:'人口',v:'16.95万'},
+        ]
+      },
+    ];
+    routeMap.querySelectorAll('.ic-clickable').forEach(function(elem){
+      elem.addEventListener('click',function(){
+        var id=parseInt(elem.dataset.id,10);
+        var d=routeData[id];if(!d)return;
+        routeMap.querySelectorAll('.ic-clickable').forEach(function(e){e.classList.remove('active')});
+        elem.classList.add('active');
+        routeCard.className='ic-detail-card';
+        var metaHtml='';
+        if(d.meta&&d.meta.length){
+          metaHtml='<div class="ic-detail-meta">';
+          d.meta.forEach(function(m){
+            metaHtml+='<div class="ic-detail-meta-item"><span class="ic-detail-meta-k">'+m.k+'</span><span class="ic-detail-meta-v">'+m.v+'</span></div>';
+          });
+          metaHtml+='</div>';
+        }
+        routeCard.innerHTML=
+          '<div class="ic-detail-label">'+d.label+'</div>'+
+          '<div class="ic-detail-num gold-num">'+d.num+'<span style="font-size:.4em;font-weight:400;color:var(--text-muted);margin-left:4px">'+d.unit+'</span></div>'+
+          '<div class="ic-detail-title">'+d.title+'</div>'+
+          '<div class="ic-detail-body">'+d.body+'</div>'+
+          metaHtml;
+      });
+    });
+  }
+
+  // Coverage Line Chart — clickable points
+  var covChart=document.getElementById('coverageChart');
+  var covCard=document.getElementById('coverageCard');
+  if(covChart&&covCard){
+    var covData=[
+      {label:'1950 年 · 起点',num:'3',unit:'%',title:'荒漠中的孤岛',body:'新中国成立之初，民勤森林覆盖率仅 3%。绿洲被巴丹吉林、腾格里两大沙漠三面包围，沙进人退是当时最真实的写照。几乎无树可挡风沙。'},
+      {label:'1980 年 · 起步',num:'4.8',unit:'%',title:'三北防护林启动',body:'1981 年三北防护林工程启动，民勤被列入重点建设区域。覆盖率从 3% 提升到 4.8%。这是治沙从民间自发转向国家战略的关键一步。'},
+      {label:'2000 年 · 突破',num:'12.08',unit:'%',title:'两位数的历史跨越',body:'石羊河流域治理规划实施后，关井压田、跨流域调水让生态补水落地。覆盖率突破 12%，绿洲边缘的林带已初步合流成片，沙源被层层拦截。'},
+      {label:'2010 年 · 跃升',num:'17.91',unit:'%',title:'接近 18% 的临界点',body:'蚂蚁森林等互联网治沙项目落地，社会化治沙力量涌入。覆盖率接近 18%，沙尘暴天数从 35 天骤降至 3 天。'},
+      {label:'2023 年 · 答卷',num:'18.28',unit:'%',title:'七十年绿色长征的终点',body:'从 3% 到 18.28%，民勤人用 70 年让森林覆盖率翻了 6 倍。荒漠化趋势被彻底逆转，绿洲有了可靠的生态屏障。'},
+    ];
+    covChart.querySelectorAll('.ic-clickable').forEach(function(elem){
+      elem.addEventListener('click',function(){
+        var id=parseInt(elem.dataset.id,10);
+        var d=covData[id];if(!d)return;
+        covChart.querySelectorAll('.ic-clickable').forEach(function(e){e.classList.remove('active')});
+        elem.classList.add('active');
+        covCard.className='ic-detail-card';
+        covCard.innerHTML=
+          '<div class="ic-detail-label">'+d.label+'</div>'+
+          '<div class="ic-detail-num">'+d.num+'<span style="font-size:.4em;font-weight:400;color:var(--text-muted);margin-left:4px">'+d.unit+'</span></div>'+
+          '<div class="ic-detail-title">'+d.title+'</div>'+
+          '<div class="ic-detail-body">'+d.body+'</div>';
+      });
+    });
+  }
+
+  // Rain Bar Chart — clickable bars
+  var rainChart=document.getElementById('rainChart');
+  var rainCard=document.getElementById('rainCard');
+  if(rainChart&&rainCard){
+    var rainData=[
+      {label:'2000 年',num:'103',unit:'mm',title:'干旱的起点',body:'进入 21 世纪，民勤年均降水量仅 103mm，而蒸发量却高达 2600mm。极度干旱让青土湖彻底干涸，沙生植被大面积枯死，生态陷入恶性循环。'},
+      {label:'2010 年',num:'137',unit:'mm',title:'林草带初现成效',body:'三北防护林工程实施近 30 年，林草带开始发挥调节作用。降水量从 103mm 升至 137mm，空气相对湿度从 30% 提升至 38%。'},
+      {label:'2020 年',num:'168',unit:'mm',title:'七十年最高纪录',body:'有记录以来的最高年均降水量。森林覆盖率突破 18%，林草蒸腾作用增强，局地水循环被激活。雨水回归标志着民勤生态进入正向循环。'},
+      {label:'2024 年',num:'149',unit:'mm',title:'波动中保持高位',body:'降水量从峰值略有回落，但仍远高于 2000 年水平。这说明民勤的气候改善不是偶然年份的异常，而是植被恢复带来的持续性效应。'},
+      {label:'2025 年',num:'118',unit:'mm',title:'正常年景的回归',body:'降水量回归接近 2000 年水平，但生态并未恶化——因为植被已具备自我调节能力。即使雨水减少，林草带仍能维持绿洲的稳定。'},
+    ];
+    rainChart.querySelectorAll('.ic-clickable').forEach(function(elem){
+      elem.addEventListener('click',function(){
+        var id=parseInt(elem.dataset.id,10);
+        var d=rainData[id];if(!d)return;
+        rainChart.querySelectorAll('.ic-clickable').forEach(function(e){e.classList.remove('active')});
+        elem.classList.add('active');
+        rainCard.className='ic-detail-card';
+        rainCard.innerHTML=
+          '<div class="ic-detail-label">'+d.label+'</div>'+
+          '<div class="ic-detail-num">'+d.num+'<span style="font-size:.4em;font-weight:400;color:var(--text-muted);margin-left:4px">'+d.unit+'</span></div>'+
+          '<div class="ic-detail-title">'+d.title+'</div>'+
+          '<div class="ic-detail-body">'+d.body+'</div>';
+      });
+    });
+  }
+
+  // Volunteer Bar Chart — clickable bars
+  var volChart=document.getElementById('volunteerChart');
+  var volCard=document.getElementById('volunteerCard');
+  if(volChart&&volCard){
+    var volData=[
+      {label:'2023 年 · 起点',num:'2,300',unit:'人',title:'蚂蚁森林的第一批种子',body:'2023 年是社会化治沙的元年。蚂蚁森林上线民勤梭梭树种，首批 2300 名网友线上认领、线下由专业种植队统一栽种。这是"互联网+治沙"的第一次大规模尝试。'},
+      {label:'2024 年 · 爆发',num:'6,000',unit:'人',title:'综艺节目带来流量',body:'《种地吧》十位勤天在民勤实地种树、直播蜜瓜，微博话题阅读量突破 30 亿。2024 年志愿者人数翻了近 3 倍，"去民勤种梭梭"成为年轻人的新社交潮流。'},
+      {label:'2025 年 · 井喷',num:'4.1万',unit:'人',title:'全民治沙元年',body:'文旅融合让治沙从公益行动变成旅游体验。2025 年民勤接待种树游客 4.1 万人次，国庆单日峰值超过 8000 人。治沙从"少数人的坚持"变成"全民的狂欢"。'},
+      {label:'2026 年 · 常态',num:'5万+',unit:'人',title:'从热潮到日常',body:'2026 年预计参与人数突破 5 万。种树不再是新闻，而是民勤人日常生活的一部分。每个周末都有新的志愿者从全国各地赶来，在沙海中种下属于自己的那棵梭梭。'},
+    ];
+    volChart.querySelectorAll('.ic-clickable').forEach(function(elem){
+      elem.addEventListener('click',function(){
+        var id=parseInt(elem.dataset.id,10);
+        var d=volData[id];if(!d)return;
+        volChart.querySelectorAll('.ic-clickable').forEach(function(e){e.classList.remove('active')});
+        elem.classList.add('active');
+        volCard.className='ic-detail-card';
+        volCard.innerHTML=
+          '<div class="ic-detail-label">'+d.label+'</div>'+
+          '<div class="ic-detail-num">'+d.num+'<span style="font-size:.4em;font-weight:400;color:var(--text-muted);margin-left:4px">'+d.unit+'</span></div>'+
+          '<div class="ic-detail-title">'+d.title+'</div>'+
+          '<div class="ic-detail-body">'+d.body+'</div>';
+      });
+    });
+  }
+
+  // Sandstorm Map — fills a single card; only shows after first click
+  var ssMap=document.getElementById('sandstormMap');
+  var ssCard=document.getElementById('sandstormCard');
+  if(ssMap&&ssCard){
+    var ssData=[
+      {label:'1950 年代 · 起点',num:'35',title:'天/年 沙尘暴肆虐',body:'民勤刚解放时，年均沙尘暴天气高达 30–37 天。每到春耕季节，一夜之间大风埋田、沙进人退，这是第一代民勤人共同的噩梦记忆。',gold:true},
+      {label:'1980 年代',num:'28',title:'天/年 持续好转',body:'三北防护林工程启动后，绿色屏障初步形成，沙尘暴天数从 35 天降到 28 天，沙进人退的势头开始被遏制。',gold:true},
+      {label:'2000 年代',num:'12',title:'天/年 大幅改善',body:'石羊河流域治理规划实施，关井压田、跨流域调水让生态补水落地，沙源被林草牢牢锁住。',gold:true},
+      {label:'2010 年代',num:'3',title:'天/年 接近消失',body:'森林覆盖率突破 17%，民勤几乎不再出现强沙尘暴天气，农田和村庄有了可靠的绿色屏障。',gold:false},
+      {label:'2020 年代 · 转折',num:'1',title:'天/年 几乎绝迹',body:'70 年治沙换来的是沙尘暴天数从 35 天骤降至仅 1 天。近十年未出现强沙尘暴，民勤天空从土黄变回蔚蓝。',gold:false},
+    ];
+    ssMap.querySelectorAll('.ic-clickable').forEach(function(elem){
+      elem.addEventListener('click',function(){
+        var id=parseInt(elem.dataset.id,10);
+        var d=ssData[id];if(!d)return;
+        ssMap.querySelectorAll('.ic-clickable').forEach(function(e){e.classList.remove('active')});
+        elem.classList.add('active');
+        ssCard.className='ic-detail-card';
+        ssCard.innerHTML=
+          '<div class="ic-detail-label">'+d.label+'</div>'+
+          '<div class="ic-detail-num'+(d.gold?' gold-num':'')+'"'+(d.green?' style="color:#388453"':"")+'>'+d.num+'</div>'+
+          '<div class="ic-detail-title">'+d.title+'</div>'+
+          '<div class="ic-detail-body">'+d.body+'</div>';
+        if(!d.gold)ssCard.querySelector('.ic-detail-num').style.color='#388453';
+      });
+    });
+  }
+})();
+
+/* ═══════ STAT-CARD CLICK → DETAIL POPUP ═══════ */
+(function(){
+  var statData={
+    vanish:{
+      a:{t:'村庄被沙埋',n:'305',u:'个',g:1,b:'40 年间，民勤有 305 个村庄被黄沙掩埋。风沙推墙倒屋，农田一夜之间变成沙丘。许多老人至今记得，沙尘暴过后，出门就是半人高的沙梁，邻居的院墙已看不见了。'},
+      b:{t:'村庄被毁',n:'600',u:'+ 个',g:0,b:'305 个被沙埋，600 多个遭到不同程度的损毁。有的村庄整体被沙丘包围，水源断绝，村民被迫放弃世代居住的家园。这是民勤生态最黑暗时期的真实记录。'},
+      c:{t:'生态移民外迁',n:'7,000',u:'余户',g:0,b:'失去绿洲庇护的村民，不得不背井离乡迁往他乡。7000 余户生态移民外迁，很多老人走时回头望着被沙埋了一半的房子。如今通过关井压田、生态补水，正在持续减少新的生态移民产生。'},
+    },
+    chapter2:{
+      a:{t:'林草防护带',n:'380',u:'公里',g:0,b:'沿巴丹吉林与腾格里沙漠边缘，民勤人用 70 年时间建起了一条 380 公里长的林草防护带。这条绿色长城由梭梭、花棒、沙枣等耐旱灌木组成，像一道天然屏障横亘在绿洲与流沙之间，被联合国环境署评为"全球治沙样本"。'},
+      b:{t:'工程治沙',n:'130',u:'万亩',g:0,b:'通过机械压沙、新材料固沙、草方格沙障等工程化手段，民勤累计完成工程治沙 130 万亩。相当于把 130 万亩流动沙丘变成固定沙地，为后续植树造林创造了先决条件。'},
+      c:{t:'封育管护',n:'325',u:'万亩',g:0,b:'对 325 万亩荒漠草原实施封育管护，禁止放牧、禁止采樵，让自然植被休养生息。封育区内植被覆盖率从不足 10% 恢复到 40% 以上，天然修复的力量令人惊叹。'},
+      d:{t:'人工造林',n:'261',u:'万亩',g:0,b:'70 年间，民勤累计人工造林 261 万亩。一代代人在沙窝里挖坑、栽苗、浇水，用双手把不毛之地变成绿洲。这片人工林每年可固碳约 12 万吨，相当于吸收 5 万辆汽车一年的碳排放。'},
+    },
+    core:{
+      a:{t:'种植总数',n:'152',u:'万株',g:0,b:'从 2023 至 2026 年，志愿者与本地村民累计种植梭梭、花棒、沙枣等耐旱灌木 152 万株。每一株苗都在沙地里扎根，连成 4500 亩新绿地，相当于每年为地球新增 380 个足球场大小的植被面积。'},
+      b:{t:'新增林地',n:'4,500',u:'亩',g:0,b:'三年间新增的林地面积合 4500 亩，主要集中在民勤西沙窝、勤锋滩、白马岗三大沙化严重区域。这些林地被纳入国家级公益林管理体系，享受每亩每年 12 元的生态补偿资金。'},
+      c:{t:'梭梭林',n:'7',u:'万+亩',g:1,b:'梭梭是民勤治沙的主力树种，耐旱、耐寒、根系深达地下 5 米。目前已形成 7 万亩以上的梭梭林带，林下接种肉苁蓉为农户每年创造亩均 1500 元额外收入，实现"一片林养一方人"。'},
+      d:{t:'平均成活率',n:'85',u:'%',g:1,b:'经过科学滴灌、覆膜保水、生物菌剂等新技术的加持，苗木平均成活率稳定在 85%。这一数字高于国际同类干旱地区造林的平均水平（60%），堪称沙区造林的世界标杆。'},
+    },
+    tourism:{
+      a:{t:'接待人数增速',n:'70',u:'%',g:1,b:'2024-2026 年间，民勤县接待游客数量年均增长 70%。主要客流来自兰州、银川等周边城市的短途自驾游，以及北京、上海等地的"沙漠研学"主题旅行团。'},
+      b:{t:'旅游收入增速',n:'79',u:'%',g:1,b:'旅游收入增速（79%）超过接待人数增速（70%），说明游客人均消费在提升。沙区民宿、治沙体验营、沙漠星空研学等高客单价产品正在替代传统的"过境游"模式。'},
+      c:{t:'年接待量',n:'127.86',u:'万人次',g:0,b:'这个数字背后是民勤旅游从小众目的地走向全国的缩影。2025 年国庆假期单日游客峰值达到 4.2 万人次，全县 1.1 万张民宿床位一床难求，'},
+      d:{t:'年收入',n:'7.66',u:'亿元',g:1,b:'旅游收入突破 7.66 亿元，相当于全县 GDP 的 6.3%。从"治沙卖苦力"到"种树卖风景"，民勤完成了生态资源向经济价值的惊险一跃。'},
+    },
+    green:{
+      a:{t:'绿色经济总量',n:'45',u:'亿+',g:1,b:'民勤绿色经济总量达到 45 亿元，涵盖沙生作物种植、林下经济、沙漠旅游、碳汇交易四大板块。"向沙漠要效益"已从口号变成看得见摸得着的 GDP。'},
+      b:{t:'林草产业产值',n:'25.2',u:'亿元',g:0,b:'林草产业是绿色经济的压舱石。肉苁蓉、枸杞、沙葱、蜜瓜四大品类贡献了 25.2 亿元产值，带动 3.8 万余农户户均年增收 1.2 万元。'},
+      c:{t:'经济林面积',n:'14.3',u:'万亩',g:0,b:'包括枣树、枸杞、文冠果等在内的经济林面积已稳定在 14.3 万亩。经济林与防护林叠加，让民勤 1/3 的沙漠边缘地带实现了"林成网、树成行、沙变绿"。'},
+      d:{t:'防护林带',n:'300',u:'km+',g:0,b:'沿巴丹吉林沙漠边缘，一条 300 公里长的林草防护带像绿色长城一样横亘在绿洲与流沙之间。这条防护带被联合国环境署评为"全球治沙样本"。'},
+    }
+  };
+
+  function setupStatGrid(sectionKey){
+    var grid=document.getElementById(sectionKey+'Grid');
+    if(!grid)return;
+    var data=statData[sectionKey];
+    // Insert a detail card after the grid (hidden/empty initially)
+    var detail=document.createElement('div');
+    detail.className='stat-detail-card empty';
+    detail.id=sectionKey+'Detail';
+    detail.innerHTML='<div class="empty-icon">&#128203;</div><div>点击上方数据查看详细解读</div>';
+    grid.parentNode.insertBefore(detail,grid.nextSibling);
+
+    grid.querySelectorAll('.stat-card').forEach(function(card){
+      card.addEventListener('click',function(){
+        var d=card.dataset.s;
+        var info=data[d];if(!info)return;
+        grid.querySelectorAll('.stat-card').forEach(function(c){c.classList.remove('active')});
+        card.classList.add('active');
+        detail.className='stat-detail-card open';
+        detail.setAttribute('data-filled','1');
+        detail.innerHTML=
+          '<div class="slabel">'+info.t+'</div>'+
+          '<div class="snum'+(info.g?' gold-num':'')+'">'+info.n+'</div>'+
+          '<div class="stitle">'+info.t+'（'+info.u+'）</div>'+
+          '<div class="sbody">'+info.b+'</div>';
+      });
+    });
+  }
+
+  setupStatGrid('vanish');
+  setupStatGrid('chapter2');
+  setupStatGrid('core');
+  setupStatGrid('tourism');
+  setupStatGrid('green');
+})();
+</script>
+</body>
+</html>
