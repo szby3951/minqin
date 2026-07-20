@@ -259,6 +259,80 @@ p:last-child{margin-bottom:0}
 }
 
 /* ═══════ HERO ═══════ */
+/* ═══════ NEWS LEAD — 新闻由头 ═══════ */
+.news-lead{
+  padding:clamp(60px,10vw,120px) clamp(20px,4vw,60px);
+  background:#fff;
+  border-top:1px solid var(--border);
+}
+.news-lead-inner{max-width:1100px;margin:0 auto}
+.news-lead-head{text-align:center;max-width:720px;margin:0 auto clamp(36px,5vw,56px)}
+.news-lead-head h2{
+  font-family:var(--serif);
+  font-size:clamp(1.8rem,4vw,3rem);
+  font-weight:800;
+  color:var(--green-dark);
+  margin:14px 0 16px;
+  line-height:1.2;
+}
+.news-lead-head .lede{
+  font-size:clamp(.95rem,1.5vw,1.15rem);
+  color:var(--text-sec);
+  line-height:1.75;
+}
+.news-videos{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:clamp(20px,3vw,36px);
+}
+.news-v-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  box-shadow:0 4px 24px rgba(0,0,0,0.06);
+}
+.news-v-video{
+  position:relative;
+  aspect-ratio:16/9;
+  background:#111;
+  overflow:hidden;
+}
+.news-v-video video{width:100%;height:100%;object-fit:cover;display:block}
+.news-v-tag{
+  position:absolute;top:12px;left:12px;
+  padding:5px 12px;border-radius:6px;
+  background:rgba(0,0,0,0.65);
+  color:#fff;font-size:.7rem;font-weight:500;
+  letter-spacing:.04em;
+  z-index:2;
+}
+.news-v-body{padding:clamp(16px,2.5vw,24px)}
+.news-v-body h3{
+  font-family:var(--serif);
+  font-size:clamp(1rem,2vw,1.25rem);
+  color:var(--text);
+  margin-bottom:8px;
+  font-weight:700;
+}
+.news-v-body p{
+  font-size:.85rem;
+  color:var(--text-sec);
+  line-height:1.7;
+  margin:0;
+}
+.news-lead-foot{
+  text-align:center;
+  margin-top:clamp(32px,5vw,48px);
+  font-size:.88rem;
+  color:var(--text-muted);
+  line-height:1.6;
+}
+@media(max-width:780px){
+  .news-videos{grid-template-columns:1fr}
+  .news-lead{padding:clamp(40px,8vw,70px) clamp(16px,4vw,32px)}
+}
+
 .hero{
   min-height:100vh;
   display:flex;flex-direction:column;justify-content:center;
@@ -294,7 +368,7 @@ p:last-child{margin-bottom:0}
 .ph-wide .ph-caption strong{color:var(--green-dark)}
 .ph-icon{font-size:2rem;margin-bottom:12px;opacity:.4}
 .hero-text{color:var(--text)}
-.hero-title{font-family:var(--serif);font-size:clamp(2.6rem,7vw,5.5rem);font-weight:900;letter-spacing:-0.03em;line-height:1;color:var(--text);margin-bottom:20px}
+.hero-title{font-family:var(--serif);font-size:clamp(2rem,5.5vw,4rem);font-weight:900;letter-spacing:-0.02em;line-height:1.1;color:var(--text);margin-bottom:20px}
 .hero-sub{font-size:clamp(.9rem,1.5vw,1.1rem);max-width:520px;color:var(--text-sec);margin-bottom:0;line-height:1.7}
 .hero-lead{
   font-size:.82rem;color:var(--text-muted);
@@ -935,6 +1009,27 @@ p:last-child{margin-bottom:0}
 .story-tl-item:nth-child(4) .story-tl-badge{background:var(--green-deep)}
 .story-tl-body{font-size:.9rem;color:var(--text);line-height:1.8;flex:1}
 .story-tl-body p{margin-bottom:0}
+.tqd-intro{
+  margin:clamp(20px,3vw,32px) 0;
+  padding:clamp(18px,2.5vw,28px);
+  background:var(--yellow-pale);
+  border-left:4px solid var(--gold);
+  border-radius:0 var(--radius-md) var(--radius-md) 0;
+  display:flex;flex-direction:column;gap:12px;
+}
+.tqd-intro p{
+  margin:0;
+  font-size:.88rem;
+  line-height:1.85;
+  color:var(--text);
+}
+.tqd-intro p:last-child{margin-top:2px}
+.tqd-intro em{
+  color:var(--gold);
+  font-style:normal;
+  font-weight:600;
+}
+.tqd-intro strong{color:var(--green-dark)}
 @media(max-width:600px){
   .story-tl::before{left:24px}
   .story-tl-badge{min-width:54px;font-size:.72rem}
@@ -1713,13 +1808,57 @@ HERO
       <div class="hero-text">
         <div class="section-label reveal">数据新闻可视化</div>
         <h1 class="hero-title reveal d1">
-          民勤<br><span class="green">治沙</span>
+          七十年坚守，380 公里锁边<br><span class="green">看民勤治沙交出大地&ldquo;勤天&rdquo;答卷</span>
         </h1>
-        <p class="hero-sub reveal d2">被巴丹吉林、腾格里两大沙漠夹击的绿洲孤岛。70 年间，森林覆盖率从 3% 攀升至 18.28%，年均沙尘暴天数从 35 天骤降至 1 天。</p>
+        <p class="hero-sub reveal d2">被两大沙漠夹击的绿洲孤岛，民勤人用七十年、380 公里绿色锁边，在沙海中种出大地&ldquo;勤天&rdquo;的生态答卷。</p>
       </div>
     </div>
     <p class="hero-lead reveal d2">这是几代人在沙海中用手掌、用草方格、用一棵棵梭梭树拼出来的绿色长城 &mdash; 一个关于信念、汗水与重生的数据故事。</p>
     <div class="hero-scroll reveal d3">SCROLL &darr;</div>
+  </div>
+</section>
+
+<!--
+════════════════════════════════════════════════════════
+NEWS LEAD — 新闻由头（实景 + 新闻联播）
+═══════════════════════════════════════════════════════
+-->
+<section class="news-lead" id="newsLead">
+  <div class="news-lead-inner">
+    <div class="news-lead-head">
+      <div class="section-label reveal">新闻由头</div>
+      <h2 class="reveal d1">从一段录像到一堂全民课</h2>
+      <p class="lede reveal d2">这是一段被无数次回看的影像：荒漠中的孤岛、翻滚的沙墙、还有新闻联播里那句沉重的播报。所有的故事，都从这片被两大沙漠夹击的土地开始。</p>
+    </div>
+    <div class="news-videos">
+      <!-- 左：环境实拍 -->
+      <div class="news-v-card reveal d2">
+        <div class="news-v-video">
+          <video id="vShamo" playsinline muted loop autoplay preload="metadata" poster="">
+            <source src="shamo.mp4" type="video/mp4">
+          </video>
+          <div class="news-v-tag">环境实拍</div>
+        </div>
+        <div class="news-v-body">
+          <h3>沙海孤岛：民勤的真实底色</h3>
+          <p>镜头掠过巴丹吉林与腾格里交汇的风口——黄沙漫天、灌木伏地，绿洲如一枚绿钉嵌在金黄之中。每年数十场沙尘暴呼啸而过，正是这片土地最日常的样貌。</p>
+        </div>
+      </div>
+      <!-- 右：新闻联播 -->
+      <div class="news-v-card reveal d2">
+        <div class="news-v-video">
+          <video id="vNews" playsinline muted loop autoplay preload="metadata" poster="">
+            <source src="news.mp4" type="video/mp4">
+          </video>
+          <div class="news-v-tag">新闻联播</div>
+        </div>
+        <div class="news-v-body">
+          <h3>新闻联播：向全国播报"民勤"</h3>
+          <p>当新闻联播的播报声响彻千家万户，"民勤治沙"三个字第一次被全国上下熟知。这段报道不仅定格了民勤的困境，更点燃了一场跨越七十年、迄今未息的全民种树行动。</p>
+        </div>
+      </div>
+    </div>
+    <p class="news-lead-foot reveal">从这里出发，跟随数据的脚步，看一代代民勤人如何把不可能变成可能 &rarr;</p>
   </div>
 </section>
 
@@ -2831,6 +2970,10 @@ CHAPTER 03 — 请到民勤种棵树
             <div class="ph-img"><img src="13.png" alt="十个勤天 Logo 与成员合照" loading="lazy"></div>
             <div class="ph-caption"><strong>十个勤天。</strong>十位年轻人走进民勤，用直播与短视频把种树变成年轻人的新潮流。</div>
           </div>
+          <div class="tqd-intro">
+            <p>「十个勤天」原本是一档综艺节目里十位年轻艺人的组合名。他们不是作秀，而是真正住进民勤村民家里，挽起裤腿扎草方格、种梭梭、浇地、修路。从分不清梭梭和沙枣的"农业小白"，到凌晨五点顶着风沙下地的"新农民"，他们用两年时间完成了从艺人到治沙参与者的真实转变。</p>
+            <p>他们把直播间架在田埂上，一场直播卖出 20 万斤蜜瓜；他们让话题<em>#去民勤种棵树#</em>阅读量突破 30 亿，把"治沙"变成了年轻人的社交新潮流。如今每个周末，都有年轻人从全国各地赶来民勤，只为种下属于自己的那棵梭梭——这是十个勤天种下的、比梭梭更珍贵的东西：<strong>一种"我也可以改变沙漠"的信念。</strong></p>
+          </div>
           <div class="story-tl">
             <div class="story-tl-item">
               <div class="story-tl-badge">2023 秋</div>
@@ -3496,6 +3639,26 @@ document.querySelectorAll('[data-count]').forEach(function(el){countObs.observe(
     es.forEach(function(e){if(e.isIntersecting){playVideo();fpObs.unobserve(e.target);}});
   },{threshold:0.4});
   fpObs.observe(stage);
+})();
+
+/* ═══════ NEWS VIDEOS — autoplay on scroll into view ═══════ */
+(function(){
+  function observeVideo(id){
+    var v=document.getElementById(id);
+    if(!v||!v.parentElement)return;
+    var obs=new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(e.isIntersecting){
+          var p=v.play();
+          if(p&&p.then)p.catch(function(){});
+          obs.unobserve(e.target);
+        }
+      });
+    },{threshold:0.3});
+    obs.observe(v.parentElement);
+  }
+  observeVideo('vShamo');
+  observeVideo('vNews');
 })();
 
 /* ═══════ SVG PATH DRAW ═══════ */
